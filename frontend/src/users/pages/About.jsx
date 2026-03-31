@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Snowflake, Zap, Droplet, Sparkles, Wrench, Bug } from 'lucide-react'
-import logo from '../../public/logo1.png'
+import logo from '../../../public/logo1.png'
 
 const About = () => {
   const navigate = useNavigate()
