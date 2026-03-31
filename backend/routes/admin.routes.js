@@ -31,4 +31,11 @@ router.get("/vendors", getAllVendorsAdmin);
 router.put("/vendors/:id/verify", verifyVendor);
 router.delete("/vendors/:id", deleteVendorAdmin);
 
+// MAINTENANCE REQUEST MANAGEMENT (Admin)
+import { getAllRequests, updateRequest, deleteRequest } from '../controllers/maintenanceRequest.controller.js';
+
+router.get('/maintenance-requests', getAllRequests);
+router.put('/maintenance-requests/:id', updateRequest);
+router.delete('/maintenance-requests/:id', deleteRequest);
+
 export default router;
