@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Home, Car, UserRound, HeartPulse, ShoppingBag, PartyPopper } from 'lucide-react'
-import logo from '../../public/logo1.png'
+import {Home, Car, UserRound, HeartPulse, ShoppingBag, PartyPopper } from 'lucide-react'
+import logo from '../../../public/logo1.png'
 
 const About = () => {
   const navigate = useNavigate()

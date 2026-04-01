@@ -1,6 +1,6 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import Dashboard from '../pages/Dashboard'
+import Dashboard from '../users/pages/Dashboard'
 import PublicLayout from '../layouts/PublicLayout'
 
 const UserRoutes = () => {

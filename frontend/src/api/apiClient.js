@@ -124,6 +124,17 @@ export const vendorAPI = {
 ======================= */
 export const bookingAPI = {
   getAllBookings: () => apiClient.get('/api/bookings'),
+  createBooking: (payload) => apiClient.post('/api/bookings', payload),
+  updateBookingStatus: (id, status) => apiClient.put(`/api/bookings/${id}/status`, { status })
+}
+
+/* SERVICES API */
+export const servicesAPI = {
+  getAll: () => apiClient.get('/api/services'),
+  getById: (id) => apiClient.get(`/api/services/${id}`),
+  create: (data) => apiClient.post('/api/services', data),
+  update: (id, data) => apiClient.put(`/api/services/${id}`, data),
+  delete: (id) => apiClient.delete(`/api/services/${id}`)
 }
 
 /* =========================

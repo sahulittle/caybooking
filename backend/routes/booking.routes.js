@@ -5,12 +5,16 @@ import {
   updateBookingStatus
 } from '../controllers/booking.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
-import bookingRoutes from './routes/booking.routes.js'
 
 const router = express.Router();
 
+// Create a booking (user)
 router.post('/', protect, authorize('user'), createBooking);
+
+// Get bookings for current authenticated account (user/vendor/admin)
 router.get('/', protect, getMyBookings);
-router.put('/admin/bookings/:id', updateBookingStatus)
-app.use('/api', bookingRoutes)
+
+// Update booking status (vendor or admin)
+router.put('/:id/status', protect, authorize('vendor', 'admin'), updateBookingStatus);
+
 export default router;

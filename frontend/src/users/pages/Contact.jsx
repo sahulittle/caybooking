@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Phone, Mail, MapPin, CheckCircle } from 'lucide-react'
-import { sendMaintenanceRequest } from '../api/apiClient'
+import { sendMaintenanceRequest } from '../../api/apiClient'
 import { toast } from 'react-hot-toast'
 
 const Contact = () => {

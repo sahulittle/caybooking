@@ -13,6 +13,18 @@ const protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+      // Special-case: allow the built-in admin token (adminId) without a DB user
+      if (decoded.id === 'adminId' && decoded.activeRole === 'admin') {
+        req.user = {
+          _id: decoded.id,
+          name: 'Admin',
+          email: decoded.email || process.env.ADMIN_EMAIL,
+          roles: ['admin'],
+        };
+        req.activeRole = 'admin';
+        return next();
+      }
+
       // Get user from the token and attach to request
       const user = await User.findById(decoded.id).select('-password');
 
@@ -41,9 +53,9 @@ const protect = async (req, res, next) => {
 // Middleware to grant access to specific roles
 const authorize = (...roles) => (req, res, next) => {
   if (!req.activeRole || !roles.includes(req.activeRole)) {
-    return res.status(403).json({ 
-      success: false, 
-      message: `Active role '${req.activeRole}' is not authorized to access this route` 
+    return res.status(403).json({
+      success: false,
+      message: `Active role '${req.activeRole}' is not authorized to access this route`
     });
   }
   next();
