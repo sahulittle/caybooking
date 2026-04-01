@@ -1,17 +1,17 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Snowflake, Zap, Droplet, Sparkles, Wrench, Bug } from 'lucide-react'
+import { Home, Car, UserRound, HeartPulse, ShoppingBag, PartyPopper } from 'lucide-react'
 import logo from '../../public/logo1.png'
 
 const About = () => {
   const navigate = useNavigate()
   const services = [
-    { title: 'AC Repair & Installation', icon: <Snowflake className="w-12 h-12 text-blue-500" />, color: '#3B82F6' },
-    { title: 'Electrical Services', icon: <Zap className="w-12 h-12 text-amber-500" />, color: '#F59E0B' },
-    { title: 'Plumbing', icon: <Droplet className="w-12 h-12 text-cyan-500" />, color: '#06B6D4' },
-    { title: 'Home Cleaning', icon: <Sparkles className="w-12 h-12 text-emerald-500" />, color: '#10B981' },
-    { title: 'Appliance Repair', icon: <Wrench className="w-12 h-12 text-indigo-500" />, color: '#6366F1' },
-    { title: 'Pest Control', icon: <Bug className="w-12 h-12 text-red-500" />, color: '#EF4444' },
+    { title: 'Home Services', icon: <Home className="w-12 h-12 text-blue-500" />, color: '#3B82F6' },
+    { title: 'Vehicle Servicees', icon: <Car className="w-12 h-12 text-amber-500" />, color: '#F59E0B' },
+    { title: 'Personal Care', icon: <UserRound className="w-12 h-12 text-cyan-500" />, color: '#06B6D4' },
+    { title: 'Health & Medical', icon: <HeartPulse className="w-12 h-12 text-emerald-500" />, color: '#10B981' },
+    { title: 'Daily Convenience', icon: <ShoppingBag className="w-12 h-12 text-indigo-500" />, color: '#6366F1' },
+    { title: 'Event & Occasion', icon: <PartyPopper className="w-12 h-12 text-red-500" />, color: '#EF4444' },
   ];
 
   const values = [
