@@ -3,30 +3,33 @@ import { Plus, Edit2, Trash2, Folder, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 const AdminServices = () => {
-  const [activeTab, setActiveTab] = useState("services"); // 'services' or 'categories'
+  const [activeTab, setActiveTab] = useState("categories"); // 'services' or 'categories'
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   // Data
-  const [categories, setCategories] = useState([
-    { id: 1, name: "Cooling", count: 5 },
-    { id: 2, name: "Plumbing", count: 3 },
-    { id: 3, name: "Cleaning", count: 8 },
-    { id: 4, name: "Electrical", count: 4 },
-  ]);
+  const [categories, setCategories] = useState([]);
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
+
+  const normalizeCategory = (cat) =>
+    typeof cat === "string" ? cat : cat?.addCategory || cat?.name || "General";
 
   React.useEffect(() => {
     import("../../api/apiClient").then(({ servicesAPI }) => {
       servicesAPI
         .getAll()
         .then((res) => {
+          const normalizeCategory = (cat) =>
+            typeof cat === "string"
+              ? cat
+              : cat?.addCategory || cat?.name || "General";
+
           setServices(
             (res.data.services || []).map((s) => ({
               id: s._id,
               name: s.title,
-              category: s.category || "General",
+              category: normalizeCategory(s.category),
               price: s.plans?.[0]?.price || 0,
               status: "Active",
             })),
@@ -36,88 +39,185 @@ const AdminServices = () => {
         .finally(() => setLoadingServices(false));
     });
   }, []);
+  React.useEffect(() => {
+    import("../../api/apiClient").then(({ adminAPI }) => {
+      adminAPI
+        .getCategories()
+        .then((res) => {
+          const data = res.data.data || [];
 
+          setCategories(
+            data.map((c) => ({
+              id: c._id,
+              name: c.addCategory,
+              image: c.image,
+              status: c.status,
+            })),
+          );
+        })
+        .catch((err) => {
+          console.error("Failed to load categories", err);
+          toast.error("Failed to load categories");
+        });
+    });
+  }, []);
   const [currentService, setCurrentService] = useState({
     id: null,
     name: "",
     category: "",
-    price: "",
+    plans: [{ name: "", price: "" }],
+    requirements: [], // ✅ ADD THIS
     status: "Active",
   });
   const [currentCategory, setCurrentCategory] = useState({
     id: null,
     name: "",
+    image: null,
+    status: true,
   });
 
   // Service Handlers
-  const handleSaveService = (e) => {
-    e.preventDefault()(async () => {
-      try {
-        if (currentService.id) {
-          await (
-            await import("../../api/apiClient")
-          ).servicesAPI.update(currentService.id, {
-            title: currentService.name,
-            category: currentService.category,
-            plans: [{ name: "Standard", price: Number(currentService.price) }],
-            status: currentService.status,
-          });
-          setServices(
-            services.map((s) =>
-              s.id === currentService.id ? currentService : s,
-            ),
-          );
-          toast.success("Service updated");
-        } else {
-          const res = await (
-            await import("../../api/apiClient")
-          ).servicesAPI.create({
-            title: currentService.name,
-            category: currentService.category,
-            plans: [{ name: "Standard", price: Number(currentService.price) }],
-            status: currentService.status,
-          });
-          const created = res.data.service;
-          setServices([
-            ...services,
-            {
-              id: created._id,
-              name: created.title,
-              category: created.category,
-              price: created.plans?.[0]?.price || 0,
-              status: "Active",
-            },
-          ]);
-          toast.success("Service created");
-        }
-        setIsServiceModalOpen(false);
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to save service");
+  const handleSaveService = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (currentService.id) {
+        // Use admin API for admin panel updates to avoid vendor-only authorization checks
+        const { adminAPI } = await import("../../api/apiClient");
+        await adminAPI.updateService(currentService.id, {
+          title: currentService.name,
+          category: currentService.category,
+          plans: currentService.plans.map((p) => ({
+            name: p.name || "Standard",
+            price: Number(p.price),
+          })),
+          status: currentService.status,
+        });
+
+        setServices(
+          services.map((s) =>
+            s.id === currentService.id ? currentService : s,
+          ),
+        );
+
+        toast.success("Service updated");
+      } else {
+        // Use admin API for creating services from admin panel
+        const { adminAPI } = await import("../../api/apiClient");
+        // Ensure title and plans come from the plans array when the top-level name/price aren't set
+        const titleValue =
+          currentService.name ||
+          currentService.plans?.[0]?.name ||
+          "Untitled Service";
+        const plansPayload = (
+          currentService.plans || [{ name: "Standard", price: 0 }]
+        ).map((p) => ({
+          name: p.name || "Standard",
+          price: Number(p.price) || 0,
+        }));
+
+        const res = await adminAPI.createService({
+          category: currentService.category,
+          plans: plansPayload,
+          requirements: currentService.requirements || [], // ✅ ADD
+          status: currentService.status,
+        });
+
+        const created = res.data.service;
+
+        setServices([
+          ...services,
+          {
+            id: created._id,
+            name: created.title,
+            category: normalizeCategory(created.category),
+            price: created.plans?.[0]?.price || 0,
+            status: "Active",
+          },
+        ]);
+
+        toast.success("Service created");
       }
-    })();
+
+      setIsServiceModalOpen(false);
+    } catch (err) {
+      // improved error logging to help diagnose 404/authorization issues
+      console.error(
+        "Save service error:",
+        err.response?.status,
+        err.response?.data,
+        err.request || err.message,
+      );
+      const serverMessage =
+        err.response?.data?.message || err.response?.data || err.message;
+      toast.error(
+        typeof serverMessage === "string"
+          ? serverMessage
+          : "Failed to save service",
+      );
+    }
   };
 
   const handleDeleteService = async (id) => {
     try {
-      await (await import("../../api/apiClient")).servicesAPI.delete(id);
+      const { adminAPI } = await import("../../api/apiClient");
+      await adminAPI.deleteService(id);
       setServices(services.filter((s) => s.id !== id));
       toast.success("Service deleted");
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete service");
+      console.error(
+        "Delete service error:",
+        err.response?.status,
+        err.response?.data,
+        err.request || err.message,
+      );
+      const serverMessage =
+        err.response?.data?.message || err.response?.data || err.message;
+      toast.error(
+        typeof serverMessage === "string"
+          ? serverMessage
+          : "Failed to delete service",
+      );
     }
   };
 
   const openServiceModal = (service = null) => {
     if (service) {
-      setCurrentService(service);
+      // service in list is a summary (no plans). fetch full service details if needed
+      if (service.plans) {
+        setCurrentService(service);
+        setIsServiceModalOpen(true);
+      } else {
+        import("../../api/apiClient").then(async ({ servicesAPI }) => {
+          try {
+            const res = await servicesAPI.getById(service.id);
+            const svc = res.data.service || res.data;
+            setCurrentService({
+              id: svc._id || svc.id,
+              name: svc.title || svc.name,
+              category: normalizeCategory(svc.category),
+              plans: svc.plans || [{ name: "", price: "" }],
+              status: svc.status || "Active",
+            });
+          } catch (err) {
+            console.error("Failed to fetch service details", err);
+            // fallback to minimal service
+            setCurrentService({
+              ...service,
+              plans: [{ name: "", price: "" }],
+            });
+          } finally {
+            setIsServiceModalOpen(true);
+          }
+        });
+      }
     } else {
       setCurrentService({
         id: null,
         name: "",
         category: categories[0]?.name || "",
-        price: "",
+        plans: [{ name: "", price: "" }],
+        requirements: [], // ✅ ADD
         status: "Active",
       });
     }
@@ -125,23 +225,40 @@ const AdminServices = () => {
   };
 
   // Category Handlers
-  const handleSaveCategory = (e) => {
+  const handleSaveCategory = async (e) => {
     e.preventDefault();
-    if (currentCategory.id) {
-      setCategories(
-        categories.map((c) =>
-          c.id === currentCategory.id ? currentCategory : c,
-        ),
-      );
-      toast.success("Category updated");
-    } else {
-      setCategories([
-        ...categories,
-        { ...currentCategory, id: Date.now(), count: 0 },
+
+    try {
+      const { adminAPI } = await import("../../api/apiClient");
+
+      const formData = new FormData();
+      formData.append("addCategory", currentCategory.name);
+      formData.append("status", currentCategory.status);
+
+      if (currentCategory.image) {
+        formData.append("image", currentCategory.image);
+      }
+
+      const res = await adminAPI.createCategory(formData);
+
+      const created = res.data.category;
+
+      setCategories((prev) => [
+        ...prev,
+        {
+          id: created._id,
+          name: created.addCategory,
+          image: created.image,
+          status: created.status,
+        },
       ]);
-      toast.success("Category created");
+
+      toast.success("Category created successfully");
+      setIsCategoryModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create category");
     }
-    setIsCategoryModalOpen(false);
   };
 
   const handleDeleteCategory = (id) => {
@@ -153,7 +270,12 @@ const AdminServices = () => {
     if (category) {
       setCurrentCategory(category);
     } else {
-      setCurrentCategory({ id: null, name: "" });
+      setCurrentCategory({
+        id: null,
+        name: "",
+        image: null,
+        status: true,
+      });
     }
     setIsCategoryModalOpen(true);
   };
@@ -172,16 +294,25 @@ const AdminServices = () => {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setActiveTab("services")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "services" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}
-          >
-            Services
-          </button>
-          <button
             onClick={() => setActiveTab("categories")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "categories" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "categories"
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+            }`}
           >
             Categories
+          </button>
+
+          <button
+            onClick={() => setActiveTab("services")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "services"
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+            }`}
+          >
+            Services
           </button>
         </div>
       </div>
@@ -202,9 +333,6 @@ const AdminServices = () => {
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50/50 border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
-                    Service Name
-                  </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
                     Category
                   </th>
@@ -285,7 +413,15 @@ const AdminServices = () => {
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="p-3 bg-white rounded-lg border border-gray-200 text-blue-600">
-                    <Folder className="w-6 h-6" />
+                    {category.image ? (
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-12 h-12 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <Folder className="w-6 h-6" />
+                    )}
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -306,7 +442,7 @@ const AdminServices = () => {
                   {category.name}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {category.count} active services
+                  {category.count || 0} active services
                 </p>
               </div>
             ))}
@@ -332,23 +468,6 @@ const AdminServices = () => {
             <form onSubmit={handleSaveService} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">
-                  Service Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={currentService.name}
-                  onChange={(e) =>
-                    setCurrentService({
-                      ...currentService,
-                      name: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">
                   Category
                 </label>
                 <select
@@ -371,23 +490,6 @@ const AdminServices = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={currentService.price}
-                    onChange={(e) =>
-                      setCurrentService({
-                        ...currentService,
-                        price: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
                     Status
                   </label>
                   <select
@@ -404,6 +506,81 @@ const AdminServices = () => {
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Service Name
+                </label>
+
+                {currentService.plans.map((plan, index) => (
+                  <div key={index} className="grid grid-cols-2 gap-3 mb-3">
+                    {/* Plan Name */}
+                    <input
+                      type="text"
+                      placeholder="Service Name"
+                      className="w-full p-2.5 border border-gray-200 rounded-lg"
+                      value={plan.name}
+                      onChange={(e) => {
+                        const updatedPlans = [...currentService.plans];
+                        updatedPlans[index].name = e.target.value;
+                        setCurrentService({
+                          ...currentService,
+                          plans: updatedPlans,
+                        });
+                      }}
+                    />
+
+                    {/* Price + Remove */}
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Price"
+                        className="w-full p-2.5 border border-gray-200 rounded-lg"
+                        value={plan.price}
+                        onChange={(e) => {
+                          const updatedPlans = [...currentService.plans];
+                          updatedPlans[index].price = e.target.value;
+                          setCurrentService({
+                            ...currentService,
+                            plans: updatedPlans,
+                          });
+                        }}
+                      />
+
+                      {currentService.plans.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedPlans = currentService.plans.filter(
+                              (_, i) => i !== index,
+                            );
+                            setCurrentService({
+                              ...currentService,
+                              plans: updatedPlans,
+                            });
+                          }}
+                          className="px-2 bg-red-100 text-red-600 rounded-lg"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add Plan */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentService({
+                      ...currentService,
+                      plans: [...currentService.plans, { name: "", price: "" }],
+                    })
+                  }
+                  className="mt-2 text-sm text-blue-600 font-semibold"
+                >
+                  + Add Plan
+                </button>
               </div>
               <div className="pt-4 flex justify-end gap-2">
                 <button
@@ -454,6 +631,16 @@ const AdminServices = () => {
                     setCurrentCategory({
                       ...currentCategory,
                       name: e.target.value,
+                    })
+                  }
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setCurrentCategory({
+                      ...currentCategory,
+                      image: e.target.files[0],
                     })
                   }
                 />

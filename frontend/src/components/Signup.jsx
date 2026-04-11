@@ -29,7 +29,7 @@ const Signup = () => {
         // At this point, you have the user's email, name, and profile picture.
 
         // Register/Login user in backend
-        await axios.post("http://localhost:5000/api/signup", {
+        await apiClient.post("/api/signup", {
           name: userInfo.data.name || userInfo.data.given_name,
           email: userInfo.data.email,
           role: selectedRole,

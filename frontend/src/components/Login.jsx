@@ -8,8 +8,8 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const role = location.state?.role;
-  const [isVendor, setIsVendor] = useState(role === "vendor");
+  const initialRole = location.state?.role || "user";
+  const [selectedRole, setSelectedRole] = useState(initialRole); // 'user' | 'vendor' | 'admin'
 
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -21,16 +21,56 @@ const Login = () => {
             headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
           },
         );
-        toast.dismiss(loadingToast);
-        const user = {
+        // Send Google login/signup to backend to get JWT token and persisted user
+        const googleId = userInfo.data.sub;
+        const payload = {
           name: userInfo.data.name || userInfo.data.given_name,
           email: userInfo.data.email,
-          role: isVendor ? "vendor" : "user",
+          role: selectedRole === "vendor" ? "vendor" : "user",
+          googleId,
         };
-        localStorage.setItem("user", JSON.stringify(user));
-        window.dispatchEvent(new Event("authStateChange"));
-        toast.success(`Welcome back, ${user.name}!`);
-        navigate(isVendor ? "/vendor/dashboard" : "/");
+
+        // POST to backend signup endpoint which also handles Google login
+        const res = await apiClient.post("/api/signup", payload);
+
+        toast.dismiss(loadingToast);
+
+        // Normalize token (backend may prefix with 'Bearer ')
+        let token = res.data.token || "";
+        if (token.startsWith("Bearer "))
+          token = token.replace(/^Bearer\s+/i, "");
+
+        if (res.data && token) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+          window.dispatchEvent(new Event("authStateChange"));
+          toast.success(`Welcome back, ${res.data.user.name || payload.name}!`);
+          // If we have a resumeBooking intent from previous navigation, restore it
+          const resumeBooking = location.state?.resumeBooking;
+          const from = location.state?.from;
+
+          if (resumeBooking) {
+            navigate("/bookingpage", { state: resumeBooking });
+            return;
+          }
+
+          // If navigated from a protected route, go back there
+          if (from && from.pathname) {
+            navigate(from.pathname);
+            return;
+          }
+
+          const dest =
+            res.data.user?.activeRole === "admin"
+              ? "/admin/dashboard"
+              : res.data.user?.activeRole === "vendor"
+                ? "/vendor/dashboard"
+                : "/";
+
+          navigate(dest);
+        } else {
+          toast.error("Login failed: no token returned from server");
+        }
       } catch (error) {
         toast.dismiss(loadingToast);
         toast.error("Failed to get user information.");
@@ -49,7 +89,7 @@ const Login = () => {
 
     // Call backend login
     (async () => {
-      const role = isVendor ? "vendor" : location.state?.role || "user";
+      const role = selectedRole || "user";
       const loading = toast.loading("Logging in...");
       try {
         const res = await apiClient.post("/api/login", {
@@ -68,6 +108,19 @@ const Login = () => {
 
           toast.dismiss(loading);
           toast.success(res.data.message || "Login successful");
+
+          const resumeBooking = location.state?.resumeBooking;
+          const from = location.state?.from;
+
+          if (resumeBooking) {
+            navigate("/bookingpage", { state: resumeBooking });
+            return;
+          }
+
+          if (from && from.pathname) {
+            navigate(from.pathname);
+            return;
+          }
 
           const dest =
             res.data.user?.activeRole === "admin"
@@ -131,18 +184,55 @@ const Login = () => {
                 />
               </div>
 
-              {role !== "user" && (
-                <div className="flex items-center gap-2 mb-6">
-                  <input
-                    type="checkbox"
-                    id="vendor-checkbox"
-                    checked={isVendor}
-                    onChange={(e) => setIsVendor(e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300 cursor-pointer"
-                  />
-                  {/* <label htmlFor="vendor-checkbox" className="text-gray-700 font-medium cursor-pointer select-none text-sm">Log in as Vendor</label> */}
+              <div className="mb-4">
+                <label className="block mb-2 font-semibold text-gray-700 text-sm">
+                  Role
+                </label>
+                <div className="flex gap-3">
+                  <label
+                    className={`px-3 py-2 rounded-lg cursor-pointer border ${selectedRole === "user" ? "bg-indigo-50 border-indigo-500" : "border-gray-200"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="user"
+                      checked={selectedRole === "user"}
+                      onChange={() => setSelectedRole("user")}
+                      className="mr-2"
+                    />{" "}
+                    User
+                  </label>
+                  <label
+                    className={`px-3 py-2 rounded-lg cursor-pointer border ${selectedRole === "vendor" ? "bg-indigo-50 border-indigo-500" : "border-gray-200"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="vendor"
+                      checked={selectedRole === "vendor"}
+                      onChange={() => setSelectedRole("vendor")}
+                      className="mr-2"
+                    />{" "}
+                    Vendor
+                  </label>
+                  <label
+                    className={`px-3 py-2 rounded-lg cursor-pointer border ${selectedRole === "admin" ? "bg-indigo-50 border-indigo-500" : "border-gray-200"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="admin"
+                      checked={selectedRole === "admin"}
+                      onChange={() => setSelectedRole("admin")}
+                      className="mr-2"
+                    />{" "}
+                    Admin
+                  </label>
                 </div>
-              )}
+                <p className="text-xs text-gray-400 mt-2">
+                  Select the role you want to sign in as.
+                </p>
+              </div>
 
               <button
                 type="submit"
@@ -198,17 +288,6 @@ const Login = () => {
                 Sign up
               </Link>
             </p>
-
-            <div className="w-[80%] h-[40%] bg-gray-200 mt-20 flex items-center flex-col ">
-              <p>admin mail:admin@gmail.com</p>
-              <p>password:123456</p>
-
-              <p>vendor mail:vendor@gmail.com</p>
-              <p>password:123456</p>
-
-              <p>user mail:user@gmail.com</p>
-              <p>password:123456</p>
-            </div>
           </div>
         </div>
       </div>

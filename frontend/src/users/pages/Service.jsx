@@ -1,50 +1,132 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Snowflake,
-  Sparkles,
-  Droplet,
-  Zap,
-  Bug,
-  Wrench,
-  Paintbrush,
-  Leaf,
-  Star,
-  Bed,
-  UserRound,
-  Activity,
-} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Star } from "lucide-react";
 
 const Service = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [services, setServices] = React.useState([]);
-  const [loadingServices, setLoadingServices] = React.useState(true);
-  React.useEffect(() => {
-    import("../../api/apiClient").then(({ servicesAPI }) => {
-      servicesAPI
-        .getAll()
-        .then((res) => {
-          setServices(
-            (res.data.services || []).map((s, i) => ({
-              id: s._id,
-              name: s.title || s.name,
-              description: s.description,
-              price: s.plans?.[0]?.price || 0,
-              rating: s.rating || 4.5,
-              category: s.category || "General",
-              image: s.image,
-            })),
-          );
-        })
-        .catch((err) => console.error("Failed to load services", err))
-        .finally(() => setLoadingServices(false));
-    });
+  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [minRating, setMinRating] = useState(0);
+  const [availableToday, setAvailableToday] = useState(false);
+  const [price, setPrice] = useState(300);
+  const [showAll, setShowAll] = useState(false);
+
+  const loadCategories = async () => {
+    try {
+      const { servicesAPI } = await import("../../api/apiClient");
+      const res = await servicesAPI.getCategories();
+      setCategories(
+        (res.data?.data || []).map((cat) => {
+          // Derive a safe display name string — backend may return nested objects
+          let displayName = "General";
+          if (typeof cat.name === "string" && cat.name.trim())
+            displayName = cat.name;
+          else if (
+            typeof cat.addCategory === "string" &&
+            cat.addCategory.trim()
+          )
+            displayName = cat.addCategory;
+          else if (cat.name && typeof cat.name === "object") {
+            displayName =
+              cat.name.addCategory || cat.name.name || JSON.stringify(cat.name);
+          }
+          return { ...cat, displayName };
+        }),
+      );
+    } catch (err) {
+      console.error("Failed to load categories", err);
+    }
+  };
+
+  const loadServices = async (overrideCategory = null) => {
+    setLoadingServices(true);
+    try {
+      const { servicesAPI } = await import("../../api/apiClient");
+
+      // prefer explicit override, then selected single category
+      const categoryToUse =
+        overrideCategory ||
+        (selectedCategories.length === 1 ? selectedCategories[0] : null);
+
+      const params = {};
+      if (categoryToUse) params.category = categoryToUse;
+      if (price) params.maxPrice = price;
+      if (minRating) params.minRating = minRating;
+      if (availableToday) params.availableNow = true;
+
+      let res;
+      if (categoryToUse) {
+        // if a specific category, use category API if available
+        try {
+          res = await servicesAPI.getServicesByCategory(categoryToUse);
+          const items = (res.data?.data || []).map(mapService);
+          setServices(items);
+        } catch (e) {
+          // fallback to general list
+          res = await servicesAPI.getAll(params);
+          setServices((res.data?.services || []).map(mapService));
+        }
+      } else {
+        res = await servicesAPI.getAll(params);
+        setServices((res.data?.services || []).map(mapService));
+      }
+    } catch (err) {
+      console.error("Failed to load services", err);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const mapService = (s) => ({
+    id: s._id,
+    name: s.title || s.name,
+    description: s.description,
+    price: s.plans?.[0]?.price || 0,
+    rating: s.rating || 4.5,
+    // derive a safe category string to avoid rendering objects
+    category:
+      (typeof s.category === "string" && s.category) ||
+      s.category?.name ||
+      s.category?.addCategory ||
+      "General",
+    image: s.image,
+    raw: s,
+  });
+
+  useEffect(() => {
+    const incoming = location.state?.servicesList;
+    if (incoming && incoming.length) {
+      setServices(incoming.map(mapService));
+      setLoadingServices(false);
+      loadCategories();
+      return;
+    }
+
+    loadCategories();
+    loadServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [price, setPrice] = useState(300);
+  useEffect(() => {
+    // reload when filters change
+    loadServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategories, price, minRating, availableToday]);
 
-  const filteredServices = services.filter((service) => service.price <= price);
+  const filteredServices = services.filter(
+    (service) => service.price <= price && service.rating >= minRating,
+  );
+
+  const displayedServices = useMemo(() => {
+    if ((selectedCategories && selectedCategories.length > 0) || showAll) {
+      return filteredServices;
+    }
+    return filteredServices.slice(0, 5);
+  }, [filteredServices, selectedCategories, showAll]);
 
   return (
     <div className="bg-gray-50 min-h-screen pb-16 font-sans">
@@ -62,27 +144,27 @@ const Service = () => {
         <aside className="flex-1 min-w-[250px] bg-white p-6 rounded-2xl h-fit shadow-sm">
           <div className="mb-8 border-b border-gray-200 pb-6">
             <h3 className="text-base font-bold text-gray-900 mb-4">Category</h3>
-            {[
-              "Cooling",
-              "Cleaning",
-              "Plumbing",
-              "Electrical",
-              "Repair",
-              "Renovation",
-              "Outdoor",
-              "Healthcare",
-            ].map((cat) => (
-              <label
-                key={cat}
-                className="flex items-center mb-3 text-gray-600 text-[0.95rem] cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  className="mr-3 accent-blue-600 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />{" "}
-                {cat}
-              </label>
-            ))}
+            {categories.length > 0 ? (
+              categories.map((cat) => (
+                <label
+                  key={cat._id}
+                  className="flex items-center mb-3 text-gray-600 text-[0.95rem] cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(cat._id)}
+                    onChange={(e) => {
+                      const next = e.target.checked ? [cat._id] : [];
+                      setSelectedCategories(next);
+                    }}
+                    className="mr-3 accent-blue-600 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  {cat.displayName}
+                </label>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400">Loading categories...</p>
+            )}
           </div>
 
           <div className="mb-8 border-b border-gray-200 pb-6">
@@ -95,7 +177,9 @@ const Service = () => {
               max="300"
               className="w-full accent-blue-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              onChange={(e) => {
+                setPrice(Number(e.target.value));
+              }}
             />
             <div className="flex justify-between text-xs text-gray-500 mt-2">
               <span>$0</span>
@@ -114,7 +198,10 @@ const Service = () => {
                 className="flex items-center mb-3 text-gray-600 text-[0.95rem] cursor-pointer"
               >
                 <input
-                  type="checkbox"
+                  name="rating"
+                  type="radio"
+                  checked={minRating === star}
+                  onChange={() => setMinRating(star)}
                   className="mr-3 accent-blue-600 w-4 h-4"
                 />
                 <span className="flex items-center text-amber-400 ml-1 mr-1">
@@ -135,25 +222,37 @@ const Service = () => {
               Availability
             </h3>
             <label className="flex items-center mb-3 text-gray-600 text-[0.95rem] cursor-pointer">
-              <input type="checkbox" className="mr-3 accent-blue-600 w-4 h-4" />{" "}
+              <input
+                type="checkbox"
+                checked={availableToday}
+                onChange={(e) => setAvailableToday(e.target.checked)}
+                className="mr-3 accent-blue-600 w-4 h-4"
+              />
               Available Today
             </label>
             <label className="flex items-center mb-3 text-gray-600 text-[0.95rem] cursor-pointer">
               <input type="checkbox" className="mr-3 accent-blue-600 w-4 h-4" />{" "}
               Available This Weekend
             </label>
+            <div className="mt-4">
+              <button
+                onClick={() => setShowAll((s) => !s)}
+                className="px-3 py-2 bg-gray-100 rounded-lg text-sm"
+              >
+                {showAll ? "Show Less" : "Show All"}
+              </button>
+            </div>
           </div>
         </aside>
 
         {/* Main Grid */}
         <main className="flex-[3] grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-8">
-          {filteredServices.map((service) => (
+          {displayedServices.map((service) => (
             <div
               key={service.id}
               className="bg-white rounded-2xl p-6 shadow-sm flex flex-col border border-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="flex justify-between items-center mb-4">
-                {service.icon}
                 <span className="text-xs font-semibold uppercase tracking-wide text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
                   {service.category}
                 </span>
@@ -179,7 +278,30 @@ const Service = () => {
               </div>
 
               <button
-                onClick={() => navigate(`/service/${service.id}`)}
+                onClick={() => {
+                  const user = localStorage.getItem("user");
+                  const planToBook = {
+                    id: service.raw?.plans?.[0]?.id,
+                    ...service.raw?.plans?.[0],
+                  };
+                  const serviceObj = service.raw || null;
+                  if (!user) {
+                    navigate("/login", {
+                      state: {
+                        resumeBooking: {
+                          service: serviceObj,
+                          plan: planToBook,
+                        },
+                        from: { pathname: "/bookingpage" },
+                      },
+                    });
+                    return;
+                  }
+
+                  navigate("/bookingpage", {
+                    state: { service: serviceObj, plan: planToBook },
+                  });
+                }}
                 className="w-full py-3.5 bg-blue-600 text-white border-none rounded-xl font-semibold cursor-pointer text-base transition-colors duration-200 hover:bg-blue-700"
               >
                 Book Now
