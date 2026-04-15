@@ -10,6 +10,18 @@ const ServicesDetails = () => {
   const handleBookNow = () => {
     // Pre-fill the booking page with the current service and selected plan (or default to first plan)
     const planToBook = selectedPlan || service.plans[0];
+    const user = localStorage.getItem("user");
+    if (!user) {
+      // send to login and resume booking after auth
+      navigate("/login", {
+        state: {
+          resumeBooking: { service, plan: planToBook },
+          from: { pathname: "/bookingpage" },
+        },
+      });
+      return;
+    }
+
     navigate("/bookingpage", { state: { service, plan: planToBook } });
   };
 

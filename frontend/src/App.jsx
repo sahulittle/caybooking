@@ -1,8 +1,8 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
-import PublicLayout from './layouts/PublicLayout'
-import ProtectedRoute from './routes/ProtectedRoute'
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import PublicLayout from "./layouts/PublicLayout";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 
 import Home from './users/pages/Home'
@@ -16,9 +16,12 @@ import BookingPage from './users/pages/BookingPage'
 import WeeklyBookingPage from './users/pages/WeeklyBookingPage'
 
 import NotFound from './users/pages/NotFound'
-import VendorRoutes from './routes/VendorRoutes'
-import AdminRoutes from './routes/AdminRoutes'
-import UserRoutes from './routes/UserRoutes'
+// import UserRoutes from './routes/UserRoutes'
+import VendorRoutes from "./routes/VendorRoutes";
+import AdminRoutes from "./routes/AdminRoutes";
+import UserRoutes from "./routes/UserRoutes";
+import ServicesByCategory from "./users/pages/ServicesByCategory";
+import BookingSuccess from "./users/pages/BookingSuccess";
 
 const App = () => {
   return (
@@ -39,33 +42,47 @@ const App = () => {
           <Route path="login" element={<Login />} />
           <Route path="bookingpage" element={<BookingPage />} />
           <Route path="weekly-booking" element={<WeeklyBookingPage />} />
+          <Route path="booking-success/:id" element={<BookingSuccess />} />
+          <Route
+            path="/services/:categoryId"
+            element={<ServicesByCategory />}
+          />
         </Route>
 
         {/* Vendor Routes - Protected */}
-        <Route path="/vendor/*" element={
-          <ProtectedRoute allowedRoles={['vendor']}>
-            <VendorRoutes />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/vendor/*"
+          element={
+            <ProtectedRoute allowedRoles={["vendor"]}>
+              <VendorRoutes />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Admin Routes - Protected */}
-        <Route path="/admin/*" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminRoutes />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminRoutes />
+            </ProtectedRoute>
+          }
+        />
 
         {/* User Routes - Protected */}
-        <Route path="/user/*" element={
-          <ProtectedRoute allowedRoles={['user']}>
-            <UserRoutes />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/user/*"
+          element={
+            <ProtectedRoute allowedRoles={["user"]}>
+              <UserRoutes />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
-  )
-}
+  );
+};
 
-export default App
+export default App;

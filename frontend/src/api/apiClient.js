@@ -1,13 +1,14 @@
 import axios from 'axios'
 import { getActiveRole, canAccessRole } from '../utils/roleGuard'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:5001'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
 /* =========================
@@ -16,9 +17,16 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
+    const activeRole = getActiveRole()
 
+    // ✅ Attach token
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+
+    // ✅ Attach role (VERY IMPORTANT for backend)
+    if (activeRole) {
+      config.headers['x-role'] = activeRole
     }
 
     // 🔒 Admin Protection
@@ -26,14 +34,12 @@ apiClient.interceptors.request.use(
       return Promise.reject(new Error('Admin access required'))
     }
 
-    // 🔒 Vendor Protection (ONLY vendor-specific endpoints)
+    // 🔒 Vendor Protection (only vendor routes)
     if (
-      config.url.includes('/vendors/profile') ||
-      config.url.includes('/vendors/create')
+      config.url.includes('/vendors') &&
+      !canAccessRole('vendor')
     ) {
-      if (!canAccessRole('vendor')) {
-        return Promise.reject(new Error('Vendor access required'))
-      }
+      return Promise.reject(new Error('Vendor access required'))
     }
 
     return config
@@ -47,12 +53,23 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.clear()
-      window.location.href = '/login'
+    const originalRequest = error.config || {};
+
+    // Don't auto-redirect for auth endpoints (login/signup) — let the component handle errors
+    const skipAutoRedirect = originalRequest.url && (
+      originalRequest.url.includes('/api/login') ||
+      originalRequest.url.includes('/api/signup') ||
+      originalRequest.url.includes('/api/payments/create-checkout-session')
+    );
+
+    if (error.response?.status === 401 && !skipAutoRedirect) {
+      // Clear auth and force login for protected routes
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
 
-    if (error.response?.status === 403) {
+    if (error.response?.status === 403 && !skipAutoRedirect) {
       window.location.href = '/login?error=unauthorized'
     }
 
@@ -60,89 +77,190 @@ apiClient.interceptors.response.use(
   }
 )
 
-/* =========================
-   USER APIs
-========================= */
+
+// =========================
+// USER APIs
+// =========================
 export const userAPI = {
-  getMyBookings: () => apiClient.get('/api/maintenance-request/my'),
+  // ✅ FIXED (Booking instead of maintenance)
+  getMyBookings: () => apiClient.get('/api/bookings'),
 }
 
-/* =========================
-   ADMIN APIs
-========================= */
+
+// =========================
+// ADMIN APIs
+// =========================
+// =========================
+// ADMIN APIs
+// =========================
 export const adminAPI = {
-  // User Management
-  getAllUsers: async (params = {}) => {
-    return await apiClient.get('/api/admin/users', { params });
-  },
-  getUserById: async (id) => {
-    return await apiClient.get(`/api/admin/users/${id}`);
-  },
-  updateUser: async (id, userData) => {
-    return await apiClient.put(`/api/admin/users/${id}`, userData);
-  },
-  deleteUser: async (id) => {
-    return await apiClient.delete(`/api/admin/users/${id}`);
-  },
+  getAllUsers: (params = {}) =>
+    apiClient.get('/api/admin/users', { params }),
 
-  // Maintenance Request Management (Problems)
-  getAllRequests: async () => {
-    return await apiClient.get('/api/admin/maintenance-requests');
-  },
-  updateRequest: async (id, requestData) => {
-    return await apiClient.put(`/api/admin/maintenance-requests/${id}`, requestData);
-  },
-  deleteRequest: async (id) => {
-    return await apiClient.delete(`/api/admin/maintenance-requests/${id}`);
-  },
+  getUserById: (id) =>
+    apiClient.get(`/api/admin/users/${id}`),
 
-  // Vendor Management
-  getAllVendors: async () => {
-    return await apiClient.get('/api/admin/vendors');
-  },
-  updateVendor: async (id, data) => {
-    // If verifying vendor (specific KYC action)
+  updateUser: (id, userData) =>
+    apiClient.put(`/api/admin/users/${id}`, userData),
+
+  deleteUser: (id) =>
+    apiClient.delete(`/api/admin/users/${id}`),
+
+  // Requests
+  getAllRequests: () =>
+    apiClient.get('/api/admin/maintenance-requests'),
+
+  updateRequest: (id, data) =>
+    apiClient.put(`/api/admin/maintenance-requests/${id}`, data),
+
+  deleteRequest: (id) =>
+    apiClient.delete(`/api/admin/maintenance-requests/${id}`),
+
+  // Vendors
+  getAllVendors: () =>
+    apiClient.get('/api/admin/vendors'),
+
+  updateVendor: (id, data) => {
     if (data.isVerified !== undefined) {
-      return await apiClient.put(`/api/admin/vendors/${id}/verify`, data);
+      return apiClient.put(`/api/admin/vendors/${id}/verify`, data)
     }
-    return await apiClient.put(`/api/vendors/${id}`, data);
+    return apiClient.put(`/api/vendors/${id}`, data)
   },
-  deleteVendor: async (id) => {
-    return await apiClient.delete(`/api/admin/vendors/${id}`);
-  },
+
+  deleteVendor: (id) =>
+    apiClient.delete(`/api/admin/vendors/${id}`),
+
+  // Categories
+  createCategory: (formData) =>
+    apiClient.post('/api/admin/categories', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  getCategories: (params = {}) =>
+    apiClient.get('/api/admin/categories', { params }),
+
+  // =========================
+  // ✅ SERVICES (ADD THIS)
+  // =========================
+  getAllServices: () =>
+    apiClient.get('/api/admin/services'),
+
+  getServiceById: (id) =>
+    apiClient.get(`/api/admin/services/${id}`),
+
+  createService: (data) =>
+    apiClient.post('/api/admin/services', data),
+
+  updateService: (id, data) =>
+    apiClient.put(`/api/admin/services/${id}`, data),
+
+  deleteService: (id) =>
+    apiClient.delete(`/api/admin/services/${id}`),
 };
 
-/* =========================
-   VENDOR APIs
-========================= */
+
+// =========================
+// VENDOR APIs
+// =========================
 export const vendorAPI = {
-  getMaintenanceRequests: () => apiClient.get('/api/maintenance-request'),
-};
+  getMaintenanceRequests: () =>
+    apiClient.get('/api/maintenance-request'),
 
-/*===================
-  Booking APIs
-======================= */
+  // ✅ Vendor bookings (important)
+  getMyBookings: () =>
+    apiClient.get('/api/bookings'),
+
+  updateBookingStatus: (id, status) =>
+    apiClient.put(`/api/bookings/${id}/status`, { status }),
+
+  // Earnings
+  getEarnings: () => apiClient.get('/api/vendors/earnings'),
+  // Withdrawals
+  createWithdrawal: (payload) => apiClient.post('/api/vendors/withdraw', payload),
+  // Payments (paginated)
+  getPayments: (params = {}) => apiClient.get('/api/vendors/payments', { params }),
+}
+
+
+// =========================
+// BOOKING APIs (FINAL)
+// =========================
 export const bookingAPI = {
+  // ✅ Get logged-in user/vendor bookings
+  getMyBookings: () => apiClient.get('/api/bookings'),
+  // alias used by vendor dashboard
   getAllBookings: () => apiClient.get('/api/bookings'),
-  createBooking: (payload) => apiClient.post('/api/bookings', payload),
-  updateBookingStatus: (id, status) => apiClient.put(`/api/bookings/${id}/status`, { status })
+
+  // ✅ Create booking
+  createBooking: (payload) =>
+    apiClient.post('/api/bookings', payload),
+
+  // ✅ Get single booking (for success page)
+  getBookingById: (id) =>
+    apiClient.get(`/api/bookings/${id}`),
+
+  // ✅ Update status (vendor/admin)
+  updateBookingStatus: (id, status) =>
+    apiClient.put(`/api/bookings/${id}/status`, { status }),
 }
 
-/* SERVICES API */
+
+// =========================
+// SERVICES API for vendor
+// =========================
 export const servicesAPI = {
-  getAll: () => apiClient.get('/api/services'),
+  getAll: (params = {}) => apiClient.get('/api/services', { params }),
   getById: (id) => apiClient.get(`/api/services/${id}`),
-  create: (data) => apiClient.post('/api/services', data),
-  update: (id, data) => apiClient.put(`/api/services/${id}`, data),
-  delete: (id) => apiClient.delete(`/api/services/${id}`)
+  getCategories: () => apiClient.get('/api/services/categories'),
+
+  getServicesByCategory: (categoryId) =>
+    apiClient.get(`/api/services/category/${categoryId}`),
+
+  create: (data) =>
+    apiClient.post('/api/services', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  update: (id, data) =>
+    apiClient.put(`/api/services/${id}`, data),
+
+  delete: (id) =>
+    apiClient.delete(`/api/services/${id}`),
 }
 
-/* =========================
-   CREATE BOOKING / CONTACT
-========================= */
+
+// =========================
+// SUBSCRIPTION API
+// =========================
+export const subscriptionAPI = {
+  // public
+  getAll: () => apiClient.get('/api/subscriptions'),
+  getById: (id) => apiClient.get(`/api/subscriptions/${id}`),
+
+  // vendor/user subscription checkout
+  createCheckout: (payload) => apiClient.post('/api/subscriptions/create-checkout-session', payload),
+
+  // admin (protected)
+  create: (data) => apiClient.post('/api/admin/subscriptions', data),
+  update: (id, data) => apiClient.put(`/api/admin/subscriptions/${id}`, data),
+  delete: (id) => apiClient.delete(`/api/admin/subscriptions/${id}`),
+}
+
+
+// =========================
+// MAINTENANCE REQUEST
+// =========================
 export const sendMaintenanceRequest = async (payload) => {
-  const response = await apiClient.post('/api/maintenance-request', payload)
+  const response = await apiClient.post(
+    '/api/maintenance-request',
+    payload
+  )
   return response.data
 }
 
+// for payments 
+export const paymentAPI = {
+  createCheckout: (bookingId) =>
+    apiClient.post("/api/payments/create-checkout-session", { bookingId }),
+};
 export default apiClient

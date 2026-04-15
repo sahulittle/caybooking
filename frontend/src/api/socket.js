@@ -5,7 +5,7 @@ let socket = null
 export const connectSocket = (token) => {
   if (socket && socket.connected) return socket
 
-  const url = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  const url = import.meta.env.VITE_API_URL || 'http://localhost:5001'
   socket = io(url, {
     auth: {
       token: token ? `Bearer ${token}` : undefined

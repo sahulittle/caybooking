@@ -11,10 +11,15 @@ const Booking = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await bookingAPI.updateBookingStatus(id, newStatus);
+      // backend expects lowercase status values (pending, confirmed, Confirmed, cancelled)
+      const payloadStatus = String(newStatus).toLowerCase();
+      await bookingAPI.updateBookingStatus(id, payloadStatus);
       toast.success(`Booking ${newStatus}`);
       fetchBookings(); // refresh data
     } catch (error) {
@@ -22,12 +27,17 @@ const Booking = () => {
     }
   };
   const filteredBookings = bookings.filter((booking) => {
-    const matchesTab = activeTab === "All" || booking.status === activeTab;
+    const bookingStatus = (booking.status || "").toString().toLowerCase();
+    const tab = (activeTab || "").toString().toLowerCase();
+    const matchesTab = tab === "all" || bookingStatus === tab;
+
     const customerName = booking.name || booking.customer || "";
     const serviceTitle = booking.service || "";
+    const q = (searchTerm || "").toString().toLowerCase();
     const matchesSearch =
-      customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      serviceTitle.toLowerCase().includes(searchTerm.toLowerCase());
+      customerName.toLowerCase().includes(q) ||
+      serviceTitle.toLowerCase().includes(q);
+
     return matchesTab && matchesSearch;
   });
 
@@ -35,7 +45,7 @@ const Booking = () => {
     switch (status) {
       case "Pending":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "Completed":
+      case "Confirmed":
         return "bg-green-100 text-green-800 border-green-200";
       case "Cancelled":
         return "bg-red-100 text-red-800 border-red-200";
@@ -48,14 +58,29 @@ const Booking = () => {
     try {
       setLoading(true);
 
-      const res = await bookingAPI.getAllBookings();
-      // backend returns { success, count, bookings }
-      setBookings(res.data.bookings || []);
+      const res = await bookingAPI.getMyBookings();
+
+      const formatted = (res.data.bookings || []).map((b) => ({
+        _id: b._id,
+        name: b.user?.name,
+        email: b.user?.email,
+        service: b.service?.title,
+        date: b.bookingDate ? new Date(b.bookingDate).toLocaleDateString() : "",
+        time: b.bookingTime || "",
+        status: capitalize(b.status || ""),
+      }));
+
+      setBookings(formatted);
     } catch (error) {
       toast.error("Failed to load bookings");
     } finally {
       setLoading(false);
     }
+  };
+
+  const capitalize = (str = "") => {
+    if (!str) return "";
+    return String(str).charAt(0).toUpperCase() + String(str).slice(1);
   };
 
   useEffect(() => {
@@ -88,6 +113,31 @@ const Booking = () => {
     }
   }, []);
 
+  const viewBooking = async (id) => {
+    try {
+      setDetailLoading(true);
+      const res = await bookingAPI.getBookingById(id);
+      const b = res.data.booking;
+      const mapped = {
+        _id: b._id,
+        name: b.user?.name || b.user?.email,
+        email: b.user?.email,
+        service: b.service?.title || b.service,
+        date: b.bookingDate ? new Date(b.bookingDate).toLocaleDateString() : "",
+        time: b.bookingTime || "",
+        status: capitalize(b.status || ""),
+        raw: b,
+      };
+      setSelectedBooking(mapped);
+      setDetailsOpen(true);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load booking details");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen font-sans">
       <Sidebar />
@@ -116,7 +166,7 @@ const Booking = () => {
 
           {/* Filter Tabs */}
           <div className="bg-white rounded-xl p-1.5 inline-flex shadow-sm border border-gray-100 mb-6 w-full sm:w-auto overflow-x-auto">
-            {["All", "Pending", "Completed", "Cancelled"].map((tab) => (
+            {["All", "Pending", "Confirmed", "Cancelled"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -194,6 +244,7 @@ const Booking = () => {
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button
+                              onClick={() => viewBooking(booking._id)}
                               className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                               title="View Details"
                             >
@@ -239,6 +290,123 @@ const Booking = () => {
               </table>
             </div>
           </div>
+          {/* Details Modal */}
+          {detailsOpen && selectedBooking && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div
+                className="absolute inset-0 bg-black/40"
+                onClick={() => {
+                  setDetailsOpen(false);
+                  setSelectedBooking(null);
+                }}
+              />
+              <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md z-10">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Booking Details
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setDetailsOpen(false);
+                      setSelectedBooking(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-2 text-sm text-gray-700">
+                  <div>
+                    <div className="text-xs text-gray-500">Customer</div>
+                    <div className="font-bold text-gray-900">
+                      {selectedBooking.name}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {selectedBooking.email}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-gray-500">Service</div>
+                    <div className="font-medium text-gray-900">
+                      {selectedBooking.service}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div>
+                      <div className="text-xs text-gray-500">Date</div>
+                      <div className="font-medium text-gray-900">
+                        {selectedBooking.date}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Time</div>
+                      <div className="font-medium text-gray-900">
+                        {selectedBooking.time}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-gray-500">Status</div>
+                    <div className="mt-1">
+                      <span
+                        className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getStatusColor(selectedBooking.status)}`}
+                      >
+                        {selectedBooking.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-2">
+                  {selectedBooking.status === "Pending" && (
+                    <>
+                      <button
+                        onClick={async () => {
+                          await handleStatusChange(
+                            selectedBooking._id,
+                            "Confirmed",
+                          );
+                          setDetailsOpen(false);
+                          setSelectedBooking(null);
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold"
+                      >
+                        Complete
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await handleStatusChange(
+                            selectedBooking._id,
+                            "Cancelled",
+                          );
+                          setDetailsOpen(false);
+                          setSelectedBooking(null);
+                        }}
+                        className="px-4 py-2 bg-red-50 text-red-700 rounded-lg font-bold border border-red-100"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      setDetailsOpen(false);
+                      setSelectedBooking(null);
+                    }}
+                    className="px-4 py-2 bg-gray-100 rounded-lg font-bold"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

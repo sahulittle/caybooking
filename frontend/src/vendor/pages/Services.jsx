@@ -7,23 +7,30 @@ const Services = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   React.useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
+    servicesAPI.getAll().then((res) => {
+      const all = res.data.services || [];
+      // Filter services that belong to this vendor (vendor stored as user id)
+      const mine = all.filter((s) => s.vendor && s.vendor._id === user.id);
+      setServices(
+        mine.map((s) => ({
+          id: s._id,
+          name: s.title,
+          price: s.plans?.[0]?.price || 0,
+          description: s.description,
+          image: s.image,
+          category: s.category?._id, // ✅ ADD THIS
+        })),
+      );
+    });
+    // ✅ ADD THIS
     servicesAPI
-      .getAll()
+      .getCategories()
       .then((res) => {
-        const all = res.data.services || [];
-        // Filter services that belong to this vendor (vendor stored as user id)
-        const mine = all.filter((s) => s.vendor && s.vendor._id === user.id);
-        setServices(
-          mine.map((s) => ({
-            id: s._id,
-            name: s.title,
-            price: s.plans?.[0]?.price || 0,
-            description: s.description,
-            image: s.image,
-          })),
-        );
+        setCategories(res.data.data || []);
       })
       .catch((err) => console.error("Failed to load vendor services", err))
       .finally(() => setLoading(false));
@@ -32,40 +39,59 @@ const Services = () => {
     name: "",
     price: "",
     description: "",
+    category: "",
     image: null,
+    startTime: "",
+    endTime: "",
+    plans: [{ name: "", price: "" }], // ✅ CORRECT
   });
   const [editingId, setEditingId] = useState(null);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Create a fake local URL for preview
-      const imageUrl = URL.createObjectURL(file);
-      setNewService({ ...newService, image: imageUrl });
+      setNewService({ ...newService, image: file }); // ✅ FIXED
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingId) {
-      setServices(
-        services.map((s) =>
-          s.id === editingId
-            ? { ...s, ...newService, price: Number(newService.price) }
-            : s,
+
+    try {
+      const formData = new FormData();
+
+      formData.append("title", newService.name);
+      formData.append("description", newService.description);
+      formData.append("category", newService.category);
+      formData.append("startTime", newService.startTime);
+      formData.append("endTime", newService.endTime);
+
+      formData.append(
+        "plans",
+        JSON.stringify(
+          newService.plans.map((p) => ({
+            name: p.name,
+            price: Number(p.price),
+          })),
         ),
       );
-      setEditingId(null);
-    } else {
-      const id =
-        services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
-      setServices([
-        ...services,
-        { ...newService, id, price: Number(newService.price) },
-      ]);
+
+      if (newService.image) {
+        formData.append("image", newService.image);
+      }
+
+      if (editingId) {
+        await servicesAPI.update(editingId, formData);
+      } else {
+        await servicesAPI.create(formData);
+      }
+
+      alert("Service created successfully 🚀");
+      window.location.reload();
+    } catch (error) {
+      console.error("Error saving service", error);
+      alert("Error creating service ❌");
     }
-    setNewService({ name: "", price: "", description: "", image: null });
-    setIsModalOpen(false);
   };
 
   const handleDelete = (id) => {
@@ -79,13 +105,26 @@ const Services = () => {
       price: service.price,
       description: service.description,
       image: service.image,
+      startTime: service.startTime || "",
+      endTime: service.endTime || "",
+      category: service.category || "",
+      plans: service.plans || [{ name: "", price: "" }], // ✅ ADD THIS
     });
     setIsModalOpen(true);
   };
 
   const openAddModal = () => {
     setEditingId(null);
-    setNewService({ name: "", price: "", description: "", image: null });
+    setNewService({
+      name: "",
+      price: "",
+      description: "",
+      image: null,
+      category: "",
+      startTime: "",
+      endTime: "",
+      plans: [{ name: "", price: "" }], // ✅ ADD THIS
+    });
     setIsModalOpen(true);
   };
 
@@ -172,7 +211,7 @@ const Services = () => {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-900">
                 {editingId ? "Edit Service" : "Add New Service"}
@@ -185,7 +224,10 @@ const Services = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form
+              onSubmit={handleSubmit}
+              className="p-6 space-y-4 overflow-y-auto"
+            >
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">
                   Service Name
@@ -200,22 +242,112 @@ const Services = () => {
                   }
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">
-                  Price ($)
+                  Category
                 </label>
-                <input
-                  type="number"
+                <select
                   required
                   className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#088395] outline-none"
-                  value={newService.price}
+                  value={newService.category}
                   onChange={(e) =>
-                    setNewService({ ...newService, price: e.target.value })
+                    setNewService({ ...newService, category: e.target.value })
                   }
-                />
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name || cat.addCategory}
+                    </option>
+                  ))}
+                </select>
               </div>
 
+              {/* ✅ ADD THIS WHOLE BLOCK HERE */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Service Requirements
+                </label>
+
+                <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                  {newService.plans.map((plan, index) => (
+                    <div key={index} className="flex gap-3 items-center">
+                      <input
+                        type="text"
+                        placeholder={`Hair ${index + 1}`}
+                        className="flex-1 border-b border-gray-300 outline-none p-2 bg-transparent"
+                        value={plan.name}
+                        onChange={(e) => {
+                          const updated = [...newService.plans];
+                          updated[index].name = e.target.value;
+                          setNewService({ ...newService, plans: updated });
+                        }}
+                      />
+
+                      <input
+                        type="number"
+                        placeholder="$ Price"
+                        className="w-24 border-b border-gray-300 outline-none p-2 bg-transparent"
+                        value={plan.price}
+                        onChange={(e) => {
+                          const updated = [...newService.plans];
+                          updated[index].price = e.target.value;
+                          setNewService({ ...newService, plans: updated });
+                        }}
+                      />
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewService({
+                        ...newService,
+                        plans: [...newService.plans, { name: "", price: "" }],
+                      })
+                    }
+                    className="text-sm text-[#088395] font-semibold"
+                  >
+                    + Add More
+                  </button>
+                </div>
+              </div>
+
+              <div></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#088395] outline-none"
+                    value={newService.startTime}
+                    onChange={(e) =>
+                      setNewService({
+                        ...newService,
+                        startTime: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#088395] outline-none"
+                    value={newService.endTime}
+                    onChange={(e) =>
+                      setNewService({ ...newService, endTime: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">
                   Description

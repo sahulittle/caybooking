@@ -2,24 +2,73 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { allServicesData } from "./servicesData";
-import { bookingAPI } from "../../api/apiClient";
+import { bookingAPI, paymentAPI, servicesAPI } from "../../api/apiClient";
 
 const BookingPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Initialize with location state or fallback mock data
+  const servicesList = location.state?.servicesList || [];
+  const selectedService = location.state?.service || null;
+  const finalServicesList =
+    servicesList.length > 0
+      ? servicesList
+      : selectedService
+        ? [selectedService] // ✅ convert single → array
+        : [];
+  const selectedPlan = location.state?.plan || null;
+  const [timeSlots, setTimeSlots] = useState([]);
   const [bookingData, setBookingData] = useState(() => {
-    if (location.state) return location.state;
-    // Fallback default
+    // ✅ CASE 1: clicked from Services page
+    if (selectedService) {
+      return {
+        service: selectedService,
+        plan: selectedPlan || selectedService.plans?.[0],
+      };
+    }
+
+    // ✅ CASE 2: category list
+    if (servicesList.length > 0) {
+      return {
+        service: servicesList[0],
+        plan: servicesList[0].plans?.[0],
+      };
+    }
+
+    // ✅ CASE 3: fallback
     const defaultService = allServicesData[0];
     return {
       service: defaultService,
       plan: defaultService.plans[0],
     };
   });
-
   const { service, plan } = bookingData;
+
+  // If service was passed but missing plans/details, fetch full service from API
+  useEffect(() => {
+    const ensureFullService = async () => {
+      try {
+        if (!bookingData?.service) return;
+        const s = bookingData.service;
+        // If it already has plans, assume full object
+        if (s.plans && s.plans.length > 0) return;
+
+        const id = s._id || s.id;
+        if (!id) return;
+
+        const res = await servicesAPI.getById(id);
+        const full = res.data.service;
+        setBookingData((prev) => ({
+          ...prev,
+          service: full,
+          plan: prev.plan || full.plans?.[0],
+        }));
+      } catch (err) {
+        console.error("Failed to fetch full service for booking page", err);
+      }
+    };
+
+    ensureFullService();
+  }, [bookingData?.service]);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -65,25 +114,76 @@ const BookingPage = () => {
     { id: 3, title: "Confirm", icon: "✅" },
   ];
 
-  const timeSlots = [
-    "08:00 AM",
-    "09:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "01:00 PM",
-    "02:00 PM",
-    "03:00 PM",
-    "04:00 PM",
-  ];
+  const generateTimeSlots = () => {
+    if (!service) return [];
 
+    // ✅ If custom slots exist → use them
+    if (service.timeSlots && service.timeSlots.length > 0) {
+      return service.timeSlots;
+    }
+
+    // ❌ fallback (optional)
+    return ["09:00 AM", "11:00 AM", "02:00 PM", "05:00 PM"];
+  };
+  useEffect(() => {
+    const slots = generateTimeSlots();
+    setTimeSlots(slots); // show slots by default
+  }, []);
+  useEffect(() => {
+    const slots = generateTimeSlots();
+    setTimeSlots(slots);
+  }, [service]);
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, time: "" }));
+  }, [service]);
+  useEffect(() => {
+    if (formData.date) {
+      const slots = generateTimeSlots();
+
+      // OPTIONAL: filter past time if today
+      const today = new Date().toISOString().split("T")[0];
+
+      if (formData.date === today) {
+        const now = new Date();
+        const currentHour = now.getHours();
+
+        const filtered = slots.filter((slot) => {
+          const [time, modifier] = slot.split(" ");
+          let [hours, minutes] = time.split(":");
+
+          hours = parseInt(hours);
+          minutes = parseInt(minutes);
+
+          // convert to 24-hour
+          if (modifier === "PM" && hours !== 12) hours += 12;
+          if (modifier === "AM" && hours === 12) hours = 0;
+
+          const slotTime = new Date();
+          slotTime.setHours(hours, minutes, 0, 0);
+
+          return slotTime > new Date(); // ✅ compare full time
+        });
+
+        setTimeSlots(filtered);
+      } else {
+        setTimeSlots(slots);
+      }
+    }
+  }, [formData.date]);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleServiceChange = (e) => {
-    const serviceId = parseInt(e.target.value);
-    const selectedService = allServicesData.find((s) => s.id === serviceId);
+    const serviceId = e.target.value;
+    const source = finalServicesList.length
+      ? finalServicesList
+      : allServicesData;
+
+    const selectedService = source.find(
+      (s) => s._id === serviceId || s.id === serviceId,
+    );
     if (selectedService) {
       setBookingData({
         service: selectedService,
@@ -118,31 +218,19 @@ const BookingPage = () => {
   };
 
   const handleConfirm = async () => {
-    if (
-      !formData.date ||
-      !formData.time ||
-      !formData.address ||
-      !formData.city ||
-      !formData.zip
-    ) {
-      toast.error("Please complete booking details before confirming.");
+    // Ensure user is logged in before creating booking
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // preserve current booking progress and send user to login
+      navigate("/login", {
+        state: { from: location, resumeBooking: { bookingData, formData } },
+      });
       return;
     }
 
-    const payload = {
-      service: service.title,
-      plan: plan.name,
-      date: formData.date,
-      time: formData.time,
-      address: formData.address,
-      city: formData.city,
-      zip: formData.zip,
-      notes: formData.notes,
-    };
-
     try {
-      // Map frontend fields to backend expected names
-      const body = {
+      // 1️⃣ Create booking first and then show payment options modal
+      const bookingRes = await bookingAPI.createBooking({
         serviceTitle: service.title,
         planName: plan.name,
         bookingDate: formData.date,
@@ -151,22 +239,37 @@ const BookingPage = () => {
         city: formData.city,
         zip: formData.zip,
         notes: formData.notes,
-      };
+      });
 
-      const res = await bookingAPI.createBooking(body);
-      if (res.data && res.data.success) {
-        toast.success("Booking confirmed!");
-        navigate("/");
-      } else {
-        toast.error(res.data?.message || "Unable to submit booking.");
-      }
+      const booking = bookingRes.data.booking;
+      setCreatedBooking({ id: booking._id, amount: plan.price });
+      setShowPaymentModal(true);
     } catch (error) {
-      console.error("Booking error:", error);
-      toast.error(
-        error.response?.data?.message ||
-          "Unable to submit booking. Please try again.",
-      );
+      console.error(error);
+      toast.error("Booking creation failed");
     }
+  };
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState(null);
+
+  const handlePayNow = async () => {
+    try {
+      if (!createdBooking) return toast.error("No booking to pay for");
+
+      const res = await paymentAPI.createCheckout(createdBooking.id);
+      // redirect to Stripe Checkout
+      window.location.href = res.data.url;
+    } catch (error) {
+      console.error(error);
+      toast.error("Payment initiation failed");
+    }
+  };
+
+  const handlePayLater = () => {
+    // Close modal and redirect home — booking remains pending
+    setShowPaymentModal(false);
+    navigate("/");
   };
 
   // Calculate totals
@@ -254,12 +357,15 @@ const BookingPage = () => {
                       </label>
                       <div className="relative">
                         <select
-                          value={service.id}
+                          value={service._id || service.id}
                           onChange={handleServiceChange}
                           className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 appearance-none pr-10"
                         >
-                          {allServicesData.map((s) => (
-                            <option key={s.id} value={s.id}>
+                          {(finalServicesList.length
+                            ? finalServicesList
+                            : allServicesData
+                          ).map((s) => (
+                            <option key={s._id || s.id} value={s._id || s.id}>
                               {s.title}
                             </option>
                           ))}
@@ -336,24 +442,47 @@ const BookingPage = () => {
                     <label className="block text-sm font-semibold text-gray-700">
                       Available Time Slots
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {timeSlots.map((slot) => (
-                        <button
-                          key={slot}
-                          onClick={() =>
-                            setFormData((prev) => ({ ...prev, time: slot }))
-                          }
-                          className={`py-3 px-2 rounded-xl text-sm font-medium border-2 transition-all duration-200 ${
-                            formData.time === slot
-                              ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
-                              : "border-gray-100 hover:border-blue-200 text-gray-600 hover:bg-gray-50"
-                          }`}
-                        >
-                          {slot}
-                        </button>
-                      ))}
+                    <div className="max-h-64 overflow-y-auto pr-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {!formData.date ? (
+                          <p className="text-gray-400 text-sm col-span-full">
+                            Select a date to see available slots
+                          </p>
+                        ) : timeSlots.length === 0 ? (
+                          <p className="text-red-400 text-sm col-span-full">
+                            No slots available for this date
+                          </p>
+                        ) : null}
+
+                        {timeSlots.map((slot) => {
+                          const isSelected = formData.time === slot;
+
+                          return (
+                            <div
+                              key={slot}
+                              onClick={() =>
+                                setFormData((prev) => ({ ...prev, time: slot }))
+                              }
+                              className={`cursor-pointer rounded-xl border p-3 text-center transition-all duration-200 
+            ${
+              isSelected
+                ? "bg-blue-600 text-white border-blue-600 shadow-md scale-105"
+                : "bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50"
+            }
+          `}
+                            >
+                              <p className="text-sm font-semibold">{slot}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
+                  {formData.time && (
+                    <div className="mt-4 text-sm text-green-600 font-semibold">
+                      ✅ Selected Time: {formData.time}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -605,6 +734,55 @@ const BookingPage = () => {
           </div>
         </div>
       </div>
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black opacity-40"
+            onClick={() => setShowPaymentModal(false)}
+          ></div>
+          <div className="bg-white rounded-xl shadow-xl p-6 z-10 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Payment Options</h3>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="text-gray-500"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Pay for <span className="font-semibold">{service.title}</span>
+              </p>
+              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-md">
+                <div>
+                  <div className="text-sm text-gray-500">Amount</div>
+                  <div className="text-lg font-bold">
+                    ${(createdBooking?.amount || plan.price).toFixed(2)}
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500">Method: Stripe</div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handlePayNow}
+                  className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold"
+                >
+                  Pay with Card
+                </button>
+                <button
+                  onClick={handlePayLater}
+                  className="flex-1 bg-gray-200 text-gray-700 rounded-lg px-4 py-2"
+                >
+                  Pay Later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
