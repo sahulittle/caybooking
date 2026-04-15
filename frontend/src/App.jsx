@@ -13,6 +13,7 @@ import Signup from './components/Signup'
 import Login from './components/Login'
 import ServicesDetails from './users/pages/ServicesDetails'
 import BookingPage from './users/pages/BookingPage'
+import WeeklyBookingPage from './users/pages/WeeklyBookingPage'
 
 import NotFound from './users/pages/NotFound'
 import VendorRoutes from './routes/VendorRoutes'
@@ -37,6 +38,7 @@ const App = () => {
           <Route path="signup" element={<Signup />} />
           <Route path="login" element={<Login />} />
           <Route path="bookingpage" element={<BookingPage />} />
+          <Route path="weekly-booking" element={<WeeklyBookingPage />} />
         </Route>
 
         {/* Vendor Routes - Protected */}

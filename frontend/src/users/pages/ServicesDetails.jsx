@@ -28,13 +28,14 @@ const ServicesDetails = () => {
 
   if (!service) {
     return (
-      <div className="pt-32 text-center">
-        <h1 className="text-2xl font-bold">Service not found</h1>
+      <div className="pt-32 text-center min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h1 className="text-xl font-bold text-gray-700">Loading service details...</h1>
         <Link
           to="/service"
-          className="text-blue-600 hover:underline mt-4 inline-block"
+          className="text-blue-600 hover:text-blue-700 font-medium mt-4 inline-block transition-colors"
         >
-          Go back to services
+          &larr; Back to services
         </Link>
       </div>
     );
@@ -220,7 +221,7 @@ const ServicesDetails = () => {
                     onClick={handleBookNow}
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 mt-6 text-lg"
                   >
-                    Book Now
+                  Book Now
                   </button>
 
                   <p className="text-xs text-center text-gray-400 mt-3 flex justify-center items-center gap-1">

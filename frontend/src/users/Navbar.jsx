@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, NavLink } from 'react-router-dom'
-import logo from "../../public/logo1.png"
+import logo from "../../public/logo-cayman2.png"
 const Navbar = () => {
   const navigate = useNavigate()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -75,7 +75,7 @@ const Navbar = () => {
             Logo<span className="text-blue-600">.</span>
           </a> */}
           <Link to="/">
-            <img src={logo} alt="Cayman Logo" className="h-16 scale-150 pl-7  w-auto transition-transform duration-300" />
+            <img src={logo} alt="Cayman Logo" className="h-16 scale-x-150 pl-7  w-auto transition-transform duration-300 scale-y-150"/>
           </Link>
         </div>
 
