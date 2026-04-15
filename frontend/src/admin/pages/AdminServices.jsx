@@ -3,11 +3,10 @@ import { Plus, Edit2, Trash2, Folder, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 const AdminServices = () => {
-  const [activeTab, setActiveTab] = useState("categories"); // 'services' or 'categories'
+  const [activeTab, setActiveTab] = useState("categories");
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
-  // Data
   const [categories, setCategories] = useState([]);
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
@@ -20,11 +19,6 @@ const AdminServices = () => {
       servicesAPI
         .getAll()
         .then((res) => {
-          const normalizeCategory = (cat) =>
-            typeof cat === "string"
-              ? cat
-              : cat?.addCategory || cat?.name || "General";
-
           setServices(
             (res.data.services || []).map((s) => ({
               id: s._id,
@@ -32,13 +26,14 @@ const AdminServices = () => {
               category: normalizeCategory(s.category),
               price: s.plans?.[0]?.price || 0,
               status: "Active",
-            })),
+            }))
           );
         })
         .catch((err) => console.error("Failed to load services", err))
         .finally(() => setLoadingServices(false));
     });
   }, []);
+
   React.useEffect(() => {
     import("../../api/apiClient").then(({ adminAPI }) => {
       adminAPI
@@ -52,7 +47,7 @@ const AdminServices = () => {
               name: c.addCategory,
               image: c.image,
               status: c.status,
-            })),
+            }))
           );
         })
         .catch((err) => {
@@ -61,14 +56,16 @@ const AdminServices = () => {
         });
     });
   }, []);
+
   const [currentService, setCurrentService] = useState({
     id: null,
     name: "",
     category: "",
     plans: [{ name: "", price: "" }],
-    requirements: [], // ✅ ADD THIS
+    requirements: [],
     status: "Active",
   });
+
   const [currentCategory, setCurrentCategory] = useState({
     id: null,
     name: "",
@@ -76,13 +73,11 @@ const AdminServices = () => {
     status: true,
   });
 
-  // Service Handlers
   const handleSaveService = async (e) => {
     e.preventDefault();
 
     try {
       if (currentService.id) {
-        // Use admin API for admin panel updates to avoid vendor-only authorization checks
         const { adminAPI } = await import("../../api/apiClient");
         await adminAPI.updateService(currentService.id, {
           title: currentService.name,
@@ -96,19 +91,22 @@ const AdminServices = () => {
 
         setServices(
           services.map((s) =>
-            s.id === currentService.id ? currentService : s,
-          ),
+            s.id === currentService.id
+              ? {
+                  ...s,
+                  name: currentService.name || currentService.plans?.[0]?.name,
+                  category: currentService.category,
+                  price: currentService.plans?.[0]?.price || 0,
+                  status: currentService.status,
+                }
+              : s
+          )
         );
 
         toast.success("Service updated");
       } else {
-        // Use admin API for creating services from admin panel
         const { adminAPI } = await import("../../api/apiClient");
-        // Ensure title and plans come from the plans array when the top-level name/price aren't set
-        const titleValue =
-          currentService.name ||
-          currentService.plans?.[0]?.name ||
-          "Untitled Service";
+
         const plansPayload = (
           currentService.plans || [{ name: "Standard", price: 0 }]
         ).map((p) => ({
@@ -119,7 +117,7 @@ const AdminServices = () => {
         const res = await adminAPI.createService({
           category: currentService.category,
           plans: plansPayload,
-          requirements: currentService.requirements || [], // ✅ ADD
+          requirements: currentService.requirements || [],
           status: currentService.status,
         });
 
@@ -141,19 +139,18 @@ const AdminServices = () => {
 
       setIsServiceModalOpen(false);
     } catch (err) {
-      // improved error logging to help diagnose 404/authorization issues
       console.error(
         "Save service error:",
         err.response?.status,
         err.response?.data,
-        err.request || err.message,
+        err.request || err.message
       );
       const serverMessage =
         err.response?.data?.message || err.response?.data || err.message;
       toast.error(
         typeof serverMessage === "string"
           ? serverMessage
-          : "Failed to save service",
+          : "Failed to save service"
       );
     }
   };
@@ -169,21 +166,20 @@ const AdminServices = () => {
         "Delete service error:",
         err.response?.status,
         err.response?.data,
-        err.request || err.message,
+        err.request || err.message
       );
       const serverMessage =
         err.response?.data?.message || err.response?.data || err.message;
       toast.error(
         typeof serverMessage === "string"
           ? serverMessage
-          : "Failed to delete service",
+          : "Failed to delete service"
       );
     }
   };
 
   const openServiceModal = (service = null) => {
     if (service) {
-      // service in list is a summary (no plans). fetch full service details if needed
       if (service.plans) {
         setCurrentService(service);
         setIsServiceModalOpen(true);
@@ -197,19 +193,21 @@ const AdminServices = () => {
               name: svc.title || svc.name,
               category: normalizeCategory(svc.category),
               plans: svc.plans || [{ name: "", price: "" }],
+              requirements: svc.requirements || [],
               status: svc.status || "Active",
             });
           } catch (err) {
             console.error("Failed to fetch service details", err);
-            // fallback to minimal service
             setCurrentService({
               ...service,
               plans: [{ name: "", price: "" }],
+              requirements: [],
             });
           } finally {
             setIsServiceModalOpen(true);
           }
         });
+        return;
       }
     } else {
       setCurrentService({
@@ -217,14 +215,14 @@ const AdminServices = () => {
         name: "",
         category: categories[0]?.name || "",
         plans: [{ name: "", price: "" }],
-        requirements: [], // ✅ ADD
+        requirements: [],
         status: "Active",
       });
     }
+
     setIsServiceModalOpen(true);
   };
 
-  // Category Handlers
   const handleSaveCategory = async (e) => {
     e.preventDefault();
 
@@ -240,7 +238,6 @@ const AdminServices = () => {
       }
 
       const res = await adminAPI.createCategory(formData);
-
       const created = res.data.category;
 
       setCategories((prev) => [
@@ -281,21 +278,22 @@ const AdminServices = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 space-y-5 sm:space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Services Management
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Manage services and categories offered
           </p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
           <button
             onClick={() => setActiveTab("categories")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
               activeTab === "categories"
                 ? "bg-blue-600 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
@@ -306,7 +304,7 @@ const AdminServices = () => {
 
           <button
             onClick={() => setActiveTab("services")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
               activeTab === "services"
                 ? "bg-blue-600 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
@@ -318,101 +316,199 @@ const AdminServices = () => {
       </div>
 
       {activeTab === "services" ? (
-        // Services View
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
-            <h2 className="text-lg font-bold text-gray-900">All Services</h2>
-            <button
-              onClick={() => openServiceModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-            >
-              <Plus className="w-4 h-4" /> Add Service
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50/50 border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
-                    Category
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
-                    Price
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {services.map((service) => (
-                  <tr
-                    key={service.id}
-                    className="hover:bg-gray-50/50 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {service.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {service.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold text-gray-900">
-                      ${service.price}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${service.status === "Active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-                      >
-                        {service.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => openServiceModal(service)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteService(service.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+        <>
+          {/* Desktop Services Table */}
+          <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900">
+                All Services
+              </h2>
+
+              <button
+                onClick={() => openServiceModal()}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold text-sm"
+              >
+                <Plus className="w-4 h-4" /> Add Service
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left border-collapse">
+                <thead className="bg-gray-50/50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                      Service
+                    </th>
+                    <th className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                      Category
+                    </th>
+                    <th className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                      Price
+                    </th>
+                    <th className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                      Status
+                    </th>
+                    <th className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+                  {services.map((service) => (
+                    <tr
+                      key={service.id}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="px-4 lg:px-6 py-4 font-medium text-gray-900">
+                        {service.name}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-600">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {service.category}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 text-sm font-bold text-gray-900">
+                        ${service.price}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            service.status === "Active"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {service.status}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => openServiceModal(service)}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteService(service.id)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!loadingServices && services.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan="5"
+                        className="px-6 py-12 text-center text-gray-500"
+                      >
+                        No services found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile Services Cards */}
+          <div className="md:hidden bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex flex-col gap-3">
+              <h2 className="text-base font-bold text-gray-900">All Services</h2>
+              <button
+                onClick={() => openServiceModal()}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold text-sm"
+              >
+                <Plus className="w-4 h-4" /> Add Service
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {services.length > 0 ? (
+                services.map((service) => (
+                  <div
+                    key={service.id}
+                    className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-gray-900 break-words">
+                          {service.name}
+                        </h3>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {service.category}
+                          </span>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              service.status === "Active"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {service.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-sm font-bold text-gray-900 shrink-0">
+                        ${service.price}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => openServiceModal(service)}
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-100 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteService(service.id)}
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-100 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                !loadingServices && (
+                  <div className="text-center text-gray-500 py-8">
+                    No services found.
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        </>
       ) : (
-        // Categories View
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
-            <h2 className="text-lg font-bold text-gray-900">Categories</h2>
+          <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900">
+              Categories
+            </h2>
             <button
               onClick={() => openCategoryModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold text-sm"
             >
               <Plus className="w-4 h-4" /> Add Category
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6">
             {categories.map((category) => (
               <div
                 key={category.id}
-                className="p-6 bg-gray-50 rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all group"
+                className="p-4 sm:p-6 bg-gray-50 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all group"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-white rounded-lg border border-gray-200 text-blue-600">
+                <div className="flex justify-between items-start gap-3 mb-4">
+                  <div className="p-3 bg-white rounded-lg border border-gray-200 text-blue-600 shrink-0">
                     {category.image ? (
                       <img
                         src={category.image}
@@ -423,22 +519,24 @@ const AdminServices = () => {
                       <Folder className="w-6 h-6" />
                     )}
                   </div>
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                  <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => openCategoryModal(category)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-md"
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-md"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteCategory(category.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-md"
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-md"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg mb-1">
+
+                <h3 className="font-bold text-gray-900 text-base sm:text-lg mb-1 break-words">
                   {category.name}
                 </h3>
                 <p className="text-sm text-gray-500">
@@ -452,10 +550,10 @@ const AdminServices = () => {
 
       {/* Service Modal */}
       {isServiceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-bold text-lg text-gray-900">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="font-bold text-base sm:text-lg text-gray-900">
                 {currentService.id ? "Edit Service" : "New Service"}
               </h3>
               <button
@@ -465,13 +563,17 @@ const AdminServices = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSaveService} className="p-6 space-y-4">
+
+            <form
+              onSubmit={handleSaveService}
+              className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-72px)]"
+            >
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">
                   Category
                 </label>
                 <select
-                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  className="w-full p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                   value={currentService.category}
                   onChange={(e) =>
                     setCurrentService({
@@ -487,38 +589,40 @@ const AdminServices = () => {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Status
-                  </label>
-                  <select
-                    className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                    value={currentService.status}
-                    onChange={(e) =>
-                      setCurrentService({
-                        ...currentService,
-                        status: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  className="w-full p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  value={currentService.status}
+                  onChange={(e) =>
+                    setCurrentService({
+                      ...currentService,
+                      status: e.target.value,
+                    })
+                  }
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
               </div>
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Service Name
+                  Service Plans
                 </label>
 
                 {currentService.plans.map((plan, index) => (
-                  <div key={index} className="grid grid-cols-2 gap-3 mb-3">
-                    {/* Plan Name */}
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 mb-3"
+                  >
                     <input
                       type="text"
                       placeholder="Service Name"
-                      className="w-full p-2.5 border border-gray-200 rounded-lg"
+                      className="w-full p-2.5 border border-gray-200 rounded-xl"
                       value={plan.name}
                       onChange={(e) => {
                         const updatedPlans = [...currentService.plans];
@@ -530,45 +634,41 @@ const AdminServices = () => {
                       }}
                     />
 
-                    {/* Price + Remove */}
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        placeholder="Price"
-                        className="w-full p-2.5 border border-gray-200 rounded-lg"
-                        value={plan.price}
-                        onChange={(e) => {
-                          const updatedPlans = [...currentService.plans];
-                          updatedPlans[index].price = e.target.value;
+                    <input
+                      type="number"
+                      placeholder="Price"
+                      className="w-full p-2.5 border border-gray-200 rounded-xl"
+                      value={plan.price}
+                      onChange={(e) => {
+                        const updatedPlans = [...currentService.plans];
+                        updatedPlans[index].price = e.target.value;
+                        setCurrentService({
+                          ...currentService,
+                          plans: updatedPlans,
+                        });
+                      }}
+                    />
+
+                    {currentService.plans.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedPlans = currentService.plans.filter(
+                            (_, i) => i !== index
+                          );
                           setCurrentService({
                             ...currentService,
                             plans: updatedPlans,
                           });
                         }}
-                      />
-
-                      {currentService.plans.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updatedPlans = currentService.plans.filter(
-                              (_, i) => i !== index,
-                            );
-                            setCurrentService({
-                              ...currentService,
-                              plans: updatedPlans,
-                            });
-                          }}
-                          className="px-2 bg-red-100 text-red-600 rounded-lg"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
+                        className="px-3 py-2.5 bg-red-100 text-red-600 rounded-xl"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 ))}
 
-                {/* Add Plan */}
                 <button
                   type="button"
                   onClick={() =>
@@ -582,17 +682,18 @@ const AdminServices = () => {
                   + Add Plan
                 </button>
               </div>
-              <div className="pt-4 flex justify-end gap-2">
+
+              <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsServiceModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+                  className="w-full sm:w-auto px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm"
                 >
                   Save Service
                 </button>
@@ -604,10 +705,10 @@ const AdminServices = () => {
 
       {/* Category Modal */}
       {isCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-bold text-lg text-gray-900">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="font-bold text-base sm:text-lg text-gray-900">
                 {currentCategory.id ? "Edit Category" : "New Category"}
               </h3>
               <button
@@ -617,7 +718,11 @@ const AdminServices = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSaveCategory} className="p-6 space-y-4">
+
+            <form
+              onSubmit={handleSaveCategory}
+              className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-72px)]"
+            >
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">
                   Category Name
@@ -625,7 +730,7 @@ const AdminServices = () => {
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                   value={currentCategory.name}
                   onChange={(e) =>
                     setCurrentCategory({
@@ -634,9 +739,16 @@ const AdminServices = () => {
                     })
                   }
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">
+                  Category Image
+                </label>
                 <input
                   type="file"
                   accept="image/*"
+                  className="w-full p-2.5 border border-gray-200 rounded-xl bg-white"
                   onChange={(e) =>
                     setCurrentCategory({
                       ...currentCategory,
@@ -645,17 +757,18 @@ const AdminServices = () => {
                   }
                 />
               </div>
-              <div className="pt-4 flex justify-end gap-2">
+
+              <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsCategoryModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+                  className="w-full sm:w-auto px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm"
                 >
                   Save Category
                 </button>

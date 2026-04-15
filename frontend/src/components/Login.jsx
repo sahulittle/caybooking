@@ -5,7 +5,7 @@ import apiClient from "../api/apiClient";
 import toast from "react-hot-toast";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { User, Briefcase, Home } from "lucide-react";
-import logo from "../../public/logo1.png";
+import logo from "../../public/logo-cayman2.png";
 
 const Login = () => {
   const navigate = useNavigate();

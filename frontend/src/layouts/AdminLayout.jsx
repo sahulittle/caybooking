@@ -7,15 +7,16 @@ const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+    <div className="min-h-screen bg-gray-50">
       <Navbar setIsSidebarOpen={setIsSidebarOpen} />
-      
-      <div className="flex pt-20 h-screen overflow-hidden">
-        <Sidebar isSidebarOpen={isSidebarOpen} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <Outlet />
-        </main>
-      </div>
+      <Sidebar
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+      />
+
+      <main className="lg:ml-64 pt-20 min-h-screen">
+        <Outlet />
+      </main>
     </div>
   )
 }

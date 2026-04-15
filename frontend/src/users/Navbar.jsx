@@ -10,11 +10,24 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const loadUser = () => {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
+    const loadUser = async () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        const token = localStorage.getItem("token");
+        
+        if (storedUser && token) {
+          const parsedUser = JSON.parse(storedUser);
+          // Ensure the user has a role/activeRole
+          if (parsedUser.role || parsedUser.activeRole) {
+            setUser(parsedUser);
+          } else {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error loading user:", error);
         setUser(null);
       }
     };
@@ -94,7 +107,7 @@ const Navbar = () => {
               <img
                 src={logo}
                 alt="Cayman Logo"
-                className="h-10 sm:h-12 md:h-14 w-auto transition-transform duration-300"
+                className="h-10 sm:h-12 md:h-14 w-auto transition-transform duration-300 scale-150"
               />
             </Link>
           </div>
@@ -148,9 +161,13 @@ const Navbar = () => {
 
                     <Link
                       to={
-                        user.role === "vendor"
-                          ? "/vendor/profile"
-                          : `/${user.role}/dashboard`
+                        user && (user.activeRole || user.role)
+                          ? user.activeRole === "vendor" || user.role === "vendor"
+                            ? "/vendor/profile"
+                            : user.activeRole === "admin" || user.role === "admin"
+                            ? "/admin/setting"
+                            : "/user/dashboard"
+                          : "/login"
                       }
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors"
                     >
@@ -159,9 +176,13 @@ const Navbar = () => {
 
                     <Link
                       to={
-                        user.role === "vendor"
-                          ? "/vendor/dashboard"
-                          : `/${user.role}/dashboard`
+                        user && (user.activeRole || user.role)
+                          ? user.activeRole === "vendor" || user.role === "vendor"
+                            ? "/vendor/dashboard"
+                            : (user.activeRole || user.role) === "admin"
+                            ? "/admin/dashboard"
+                            : "/user/dashboard"
+                          : "/login"
                       }
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors"
                     >
@@ -233,9 +254,13 @@ const Navbar = () => {
 
                     <Link
                       to={
-                        user.role === "vendor"
-                          ? "/vendor/profile"
-                          : `/${user.role}/dashboard`
+                        user && (user.activeRole || user.role)
+                          ? user.activeRole === "vendor" || user.role === "vendor"
+                            ? "/vendor/profile"
+                            : user.activeRole === "admin" || user.role === "admin"
+                            ? "/admin/setting"
+                            : "/user/dashboard"
+                          : "/login"
                       }
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="block rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
@@ -245,9 +270,13 @@ const Navbar = () => {
 
                     <Link
                       to={
-                        user.role === "vendor"
-                          ? "/vendor/dashboard"
-                          : `/${user.role}/dashboard`
+                        user && (user.activeRole || user.role)
+                          ? user.activeRole === "vendor" || user.role === "vendor"
+                            ? "/vendor/dashboard"
+                            : (user.activeRole || user.role) === "admin"
+                            ? "/admin/dashboard"
+                            : "/user/dashboard"
+                          : "/login"
                       }
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="block rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"

@@ -5,7 +5,7 @@ import apiClient from "../api/apiClient";
 import toast from "react-hot-toast";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Briefcase, ArrowLeft, Home } from "lucide-react";
-import logo from "../../public/logo1.png"; // Import the logo
+import logo from "../../public/logo-cayman2.png"; // Import the logo
 
 const Signup = () => {
   const navigate = useNavigate();

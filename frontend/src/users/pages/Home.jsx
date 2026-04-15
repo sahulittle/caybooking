@@ -164,7 +164,7 @@ const Home = () => {
             </span>{" "}
             in Minutes
           </h1>
-          <p className="text-lg md:text-xl text-black mb-10 max-w-xl mx-auto">
+          <p className="text-lg md:text-xl text-black mb-10 max-w-xl mx-auto font-semibold">
             From AC repair to home cleaning — we connect you with verified
             professionals near you.
           </p>
