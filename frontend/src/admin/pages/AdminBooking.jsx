@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Search, 
   Filter, 
@@ -16,16 +16,11 @@ import {
   X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { bookingAPI } from '../../api/apiClient'
 
 const AdminBooking = () => {
-  // Mock Data
-  const [bookings, setBookings] = useState([
-    { id: 'BK-001', customer: 'John Doe', vendor: 'Cool Air Pros', service: 'AC Repair', date: '2023-10-25', time: '10:00 AM', status: 'Completed', price: 120, address: '123 Main St', notes: 'Gate code 1234' },
-    { id: 'BK-002', customer: 'Jane Smith', vendor: 'Unassigned', service: 'Home Cleaning', date: '2023-10-26', time: '02:00 PM', status: 'Pending', price: 85, address: '456 Oak Ave', notes: 'Bring eco-friendly products' },
-    { id: 'BK-003', customer: 'Robert Johnson', vendor: 'Quick Fix Plumbing', service: 'Plumbing', date: '2023-10-27', time: '11:30 AM', status: 'Cancelled', price: 200, address: '789 Pine Ln', notes: '' },
-    { id: 'BK-004', customer: 'Emily Davis', vendor: 'Bright Lights Elec.', service: 'Electrical', date: '2023-10-28', time: '09:00 AM', status: 'Processing', price: 150, address: '321 Elm St', notes: '' },
-    { id: 'BK-005', customer: 'Michael Wilson', vendor: 'Unassigned', service: 'Pest Control', date: '2023-10-29', time: '04:00 PM', status: 'Pending', price: 95, address: '654 Cedar Blvd', notes: 'Dog in backyard' },
-  ])
+  const [bookings, setBookings] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const [vendors] = useState(['Cool Air Pros', 'Sparkle Clean', 'Quick Fix Plumbing', 'Bright Lights Elec.', 'Green Gardeners'])
 
@@ -48,16 +43,60 @@ const AdminBooking = () => {
   // Handlers
   const handleUpdateBooking = (e) => {
     e.preventDefault()
-    setBookings(bookings.map(b => b.id === selectedBooking.id ? selectedBooking : b))
-    setIsEditMode(false)
-    setSelectedBooking(null)
-    toast.success('Booking updated successfully')
+    (async () => {
+      try {
+        // Update booking status via bookingAPI
+        await bookingAPI.updateBookingStatus(selectedBooking._id || selectedBooking.id, (
+          selectedBooking.status || "pending"
+        ).toLowerCase())
+        toast.success('Booking updated successfully')
+        // refresh
+        fetchBookings()
+      } catch (err) {
+        console.error('Failed to update booking', err)
+        toast.error('Failed to update booking')
+      } finally {
+        setIsEditMode(false)
+        setSelectedBooking(null)
+      }
+    })()
   }
 
   const openModal = (booking, edit = false) => {
     setSelectedBooking({ ...booking })
     setIsEditMode(edit)
   }
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true)
+      const res = await bookingAPI.getAllBookings()
+      const items = res.data.bookings || res.data || []
+      setBookings(
+        items.map((b) => ({
+          id: b._id,
+          _id: b._id,
+          customer: b.user?.name || b.user?.email || 'Customer',
+          vendor: b.vendor?.businessName || b.vendor?.name || 'Unassigned',
+          service: b.service?.title || b.service || '',
+          date: b.bookingDate ? new Date(b.bookingDate).toLocaleDateString() : '',
+          time: b.bookingTime || b.time || '',
+          status: (b.status || 'pending').charAt(0).toUpperCase() + (b.status || 'pending').slice(1),
+          price: b.plan?.price || b.payment?.amount || b.price || 0,
+          address: b.address || '',
+          notes: b.notes || '',
+        })),
+      )
+    } catch (err) {
+      console.error('Failed to load bookings', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchBookings()
+  }, [])
 
   const getStatusStyle = (status) => {
     switch(status) {

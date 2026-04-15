@@ -1,6 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Sidebar from '../Sidebar'
 import { User, Mail, Phone, MapPin, Upload, Camera, FileText, CheckCircle } from 'lucide-react'
+import { vendorAPI } from '../../api/apiClient'
+import toast from 'react-hot-toast'
 
 const Profile = () => {
   const [profile, setProfile] = useState({
@@ -11,6 +13,45 @@ const Profile = () => {
     bio: 'Experienced home service professional with 5+ years in AC repair and maintenance.',
     image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
   })
+
+  const [vendorId, setVendorId] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        // attempt to fetch vendor profile for current user
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const res = await vendorAPI.getProfile('me')
+        // res may return list of vendors (when "me" route used)
+        const vendors = res.data.vendors || res.data || []
+        const found = vendors.find((v) => {
+          const uid = v.user?._id || v.user?.id || v.user
+          return uid === user.id || uid === user._id
+        })
+        if (!mounted) return
+        if (found) {
+          setVendorId(found._id || found.id)
+          setProfile((p) => ({
+            ...p,
+            name: found.businessName || p.name,
+            email: user.email || p.email,
+            phone: found.phone || p.phone,
+            address: found.location || p.address,
+            bio: found.description || p.bio,
+            image: found.image || p.image,
+          }))
+        } else {
+          // fallback: use saved user info
+          setProfile((p) => ({ ...p, name: user.name || p.name, email: user.email || p.email }))
+        }
+      } catch (err) {
+        console.error('Failed to load vendor profile', err)
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
@@ -110,7 +151,29 @@ const Profile = () => {
                     <textarea rows="4" defaultValue={profile.bio} className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#088395] outline-none resize-none"></textarea>
                   </div>
                   <div className="pt-4 flex justify-end">
-                    <button type="button" className="px-8 py-3 bg-[#088395] text-white font-bold rounded-xl hover:bg-[#088395]/70 transition-colors shadow-lg shadow-blue-200">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const payload = {
+                            businessName: profile.name,
+                            phone: profile.phone,
+                            location: profile.address,
+                            description: profile.bio,
+                          }
+                          if (!vendorId) {
+                            toast.error('Vendor profile not found')
+                            return
+                          }
+                          await vendorAPI.updateProfile(vendorId, payload)
+                          toast.success('Profile updated')
+                        } catch (err) {
+                          console.error('Update profile failed', err)
+                          toast.error('Failed to update profile')
+                        }
+                      }}
+                      className="px-8 py-3 bg-[#088395] text-white font-bold rounded-xl hover:bg-[#088395]/70 transition-colors shadow-lg shadow-blue-200"
+                    >
                       Save Changes
                     </button>
                   </div>

@@ -96,6 +96,8 @@ const Earning = () => {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [recentPayments, setRecentPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [wdLoading, setWdLoading] = useState(false);
   const [paymentsPage, setPaymentsPage] = useState(1);
   const [paymentsTotal, setPaymentsTotal] = useState(0);
   const [paymentsLimit] = useState(20);
@@ -175,6 +177,16 @@ const Earning = () => {
           }
         } catch (err) {
           console.warn("Failed to load payments page", err);
+        }
+        // load vendor withdrawals
+        try {
+          setWdLoading(true);
+          const wres = await vendorAPI.getWithdrawals({ page: 1, limit: 50 });
+          setWithdrawals(wres.data.withdrawals || []);
+        } catch (err) {
+          console.warn('Failed to load withdrawals', err);
+        } finally {
+          setWdLoading(false);
         }
       } catch (err) {
         console.error("Failed to load earnings", err);
@@ -329,7 +341,6 @@ const Earning = () => {
       }
     })();
   };
-
   const loadPaymentsPage = async (page) => {
     try {
       const res = await vendorAPI.getPayments({ page, limit: paymentsLimit });
@@ -737,6 +748,53 @@ const Earning = () => {
                 </button>
               </div>
             )}
+          </div>
+          {/* Withdrawals List */}
+          <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Withdrawal Requests</h2>
+                <p className="text-sm text-gray-500">Your withdrawal history and statuses</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Request ID</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Method</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-sm">
+                  {wdLoading ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-8">Loading...</td>
+                    </tr>
+                  ) : withdrawals.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-12 text-center text-gray-500">No withdrawal requests found.</td>
+                    </tr>
+                  ) : (
+                    withdrawals.map((w) => (
+                      <tr key={w.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-[#088395]">{w.id}</td>
+                        <td className="px-6 py-4 font-bold text-gray-900">${Number(w.amount || 0).toFixed(2)}</td>
+                        <td className="px-6 py-4 text-gray-700">{w.method}</td>
+                        <td className="px-6 py-4 text-gray-500">{w.createdAt ? new Date(w.createdAt).toLocaleDateString() : ''}</td>
+                        <td className="px-6 py-4 text-right">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${w.status === 'approved' || w.status === 'Approved' ? 'bg-green-100 text-green-700' : w.status === 'rejected' || w.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {w.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

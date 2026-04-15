@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Star, 
   Search, 
@@ -10,16 +10,11 @@ import {
   ThumbsUp 
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { adminAPI } from '../../api/apiClient'
 
 const AdminReview = () => {
-  // Mock Data
-  const [reviews, setReviews] = useState([
-    { id: 1, user: 'Sarah Johnson', vendor: 'Cool Air Pros', service: 'AC Repair', rating: 5, date: '2023-10-24', comment: 'Excellent service! The technician was very professional.', status: 'Published' },
-    { id: 2, user: 'Michael Chen', vendor: 'Quick Fix Plumbing', service: 'Plumbing', rating: 4, date: '2023-10-23', comment: 'Good work, but arrived a bit late.', status: 'Published' },
-    { id: 3, user: 'Emily Davis', vendor: 'Sparkle Clean', service: 'Home Cleaning', rating: 2, date: '2023-10-22', comment: 'Missed a few spots in the living room.', status: 'Flagged' },
-    { id: 4, user: 'David Wilson', vendor: 'Bright Lights Elec.', service: 'Electrical', rating: 5, date: '2023-10-21', comment: 'Fixed the wiring issue quickly. Highly recommend!', status: 'Published' },
-    { id: 5, user: 'Jessica Brown', vendor: 'Green Gardeners', service: 'Garden Maint.', rating: 1, date: '2023-10-20', comment: 'Rude behavior and poor service.', status: 'Flagged' },
-  ])
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRating, setFilterRating] = useState('All')
@@ -42,11 +37,44 @@ const AdminReview = () => {
   const flaggedReviews = reviews.filter(r => r.status === 'Flagged').length
 
   // Handlers
-  const handleDelete = (id) => {
-    setReviews(reviews.filter(r => r.id !== id))
-    setShowDeleteConfirm(null)
-    toast.success('Review deleted successfully')
+  const handleDelete = async (id) => {
+    try {
+      await adminAPI.deleteReview(id)
+      setReviews((prev) => prev.filter((r) => r.id !== id))
+      setShowDeleteConfirm(null)
+      toast.success('Review deleted successfully')
+    } catch (err) {
+      console.error('Failed to delete review', err)
+      toast.error('Failed to delete review')
+    }
   }
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setLoading(true)
+      try {
+        const res = await adminAPI.getAllReviews({ page: 1, limit: 100 })
+        if (!mounted) return
+        const items = res.data.reviews || []
+        setReviews(
+          items.map((r) => ({
+            ...r,
+            date: r.date ? new Date(r.date).toLocaleDateString() : "",
+          })),
+        )
+      } catch (err) {
+        console.error('Failed to load reviews', err)
+        toast.error('Failed to load reviews')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   return (
     <div className="max-w-7xl mx-auto animate-in fade-in duration-500">

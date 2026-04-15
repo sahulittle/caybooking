@@ -149,6 +149,11 @@ const VendorDashboard = () => {
     date: b.date,
   }));
 
+  // Pending actions (e.g., new bookings or requests needing attention)
+  const pendingActions = bookings.filter((b) =>
+    ["Pending", "Processing"].includes(b.status),
+  );
+
   const getStatusStyle = (status) => {
     switch (status) {
       case "Completed":
@@ -245,28 +250,32 @@ const VendorDashboard = () => {
                 </span>
               </div>
               <div className="space-y-3 flex-1">
-                {[1, 2, 3].map((_, i) => (
-                  <div
-                    key={i}
-                    onClick={() => navigate("/vendor/bookings")}
-                    className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-2xl transition-all cursor-pointer border border-gray-100 hover:border-blue-100 group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-[#7AB2B2]/60 flex items-center justify-center text-[#09637E] flex-shrink-0 group-hover:scale-105 transition-transform">
-                      <Clock className="w-6 h-6" />
+                {pendingActions.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500">No pending actions.</div>
+                ) : (
+                  pendingActions.slice(0, 3).map((act) => (
+                    <div
+                      key={act.id}
+                      onClick={() => navigate("/vendor/bookings")}
+                      className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-2xl transition-all cursor-pointer border border-gray-100 hover:border-blue-100 group"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-[#7AB2B2]/60 flex items-center justify-center text-[#09637E] flex-shrink-0 group-hover:scale-105 transition-transform">
+                        <Clock className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-900 text-sm truncate group-hover:text-[#088395] transition-colors">
+                          {act.service || 'Service Request'}
+                        </h4>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {act.customer} • {act.date || 'Recently'}
+                        </p>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-sm group-hover:bg-[#088395] group-hover:border-[#088395] transition-colors">
+                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-900 text-sm truncate group-hover:text-[#088395] transition-colors">
-                        New Service Request
-                      </h4>
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
-                        Plumbing • 10 mins ago
-                      </p>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-sm group-hover:bg-[#088395] group-hover:border-[#088395] transition-colors">
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <button
                 onClick={() => navigate("/vendor/bookings")}

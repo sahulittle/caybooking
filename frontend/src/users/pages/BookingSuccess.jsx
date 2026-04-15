@@ -29,8 +29,8 @@ const BookingSuccess = () => {
   if (!booking) return <p>Loading...</p>;
 
   return (
-    <div className="p-10 text-center">
-      <h1 className="text-3xl font-bold text-green-600">
+    <div className="p-4 sm:p-10 text-center">
+      <h1 className="text-2xl sm:text-3xl font-bold text-green-600">
         🎉 Booking Confirmed!
       </h1>
 

@@ -1,53 +1,55 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Sidebar from '../Sidebar'
 import { Star, Reply } from 'lucide-react'
+import { vendorAPI, bookingAPI } from '../../api/apiClient'
+import toast from 'react-hot-toast'
 
 const Review = () => {
-  const [reviews, setReviews] = useState([
-    {
-      id: 1,
-      customer: 'Sarah Johnson',
-      date: 'Oct 24, 2023',
-      rating: 5,
-      comment: 'The AC repair service was excellent. The technician arrived on time and was very professional. Highly recommended!',
-      service: 'AC Repair',
-      reply: 'Thank you Sarah! We are glad you liked our service.',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80'
-    },
-    {
-      id: 2,
-      customer: 'Michael Chen',
-      date: 'Oct 22, 2023',
-      rating: 4,
-      comment: 'Good job on the plumbing work. Fixed the leak quickly. A bit pricey but worth it for the speed.',
-      service: 'Plumbing',
-      reply: null,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80'
-    },
-    {
-      id: 3,
-      customer: 'Emily Davis',
-      date: 'Oct 20, 2023',
-      rating: 5,
-      comment: 'Deep cleaning was thorough. My house looks amazing!',
-      service: 'Home Cleaning',
-      reply: null,
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80'
-    }
-  ])
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const [replyText, setReplyText] = useState('')
   const [activeReplyId, setActiveReplyId] = useState(null)
 
-  const handleReplySubmit = (id) => {
+  const handleReplySubmit = async (id) => {
     if (!replyText.trim()) return
-    
-    setReviews(reviews.map(review => 
-      review.id === id ? { ...review, reply: replyText } : review
-    ))
-    setReplyText('')
-    setActiveReplyId(null)
+    try {
+      await bookingAPI.updateReply(id, { vendorReply: replyText })
+      setReviews((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, reply: replyText } : r)),
+      )
+      toast.success('Reply posted')
+      setReplyText('')
+      setActiveReplyId(null)
+    } catch (err) {
+      console.error('Reply error', err)
+      toast.error('Failed to post reply')
+    }
   }
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setLoading(true)
+      try {
+        const res = await vendorAPI.getReviews()
+        if (!mounted) return
+        setReviews((res.data.reviews || []).map((r) => ({
+          ...r,
+          date: r.date ? new Date(r.date).toLocaleDateString() : '',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(r.customer || 'V')}`,
+        })))
+      } catch (err) {
+        console.error('Failed to load reviews', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   return (
     <div className="bg-gray-50 min-h-screen font-sans">

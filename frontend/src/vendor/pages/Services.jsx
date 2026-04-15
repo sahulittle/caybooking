@@ -8,6 +8,7 @@ const Services = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
+  const [showPlans, setShowPlans] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   React.useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -115,6 +116,7 @@ const Services = () => {
 
   const openAddModal = () => {
     setEditingId(null);
+
     setNewService({
       name: "",
       price: "",
@@ -123,8 +125,11 @@ const Services = () => {
       category: "",
       startTime: "",
       endTime: "",
-      plans: [{ name: "", price: "" }], // ✅ ADD THIS
+      plans: [], // ✅ empty
     });
+
+    setShowPlans(false); // ✅ ADD THIS
+
     setIsModalOpen(true);
   };
 
@@ -250,9 +255,46 @@ const Services = () => {
                   required
                   className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#088395] outline-none"
                   value={newService.category}
-                  onChange={(e) =>
-                    setNewService({ ...newService, category: e.target.value })
-                  }
+                  onChange={async (e) => {
+                    const categoryId = e.target.value;
+
+                    const selectedCat = categories.find(
+                      (c) => c._id === categoryId,
+                    );
+                    if (!selectedCat) return;
+
+                    const categoryName = selectedCat.addCategory || selectedCat.name;
+                    console.log("Sending category:", categoryName);
+
+                    setNewService((prev) => ({
+                      ...prev,
+                      category: categoryId,
+                    }));
+
+                    try {
+                      const res = await servicesAPI.getPlansByCategory(
+                        categoryName,
+                      );
+
+                      if (res.data.success) {
+                        const dynamicPlans = res.data.data.map((plan) => ({
+                          name: plan.name,
+                          price: plan.price || "",
+                        }));
+
+                        setNewService((prev) => ({
+                          ...prev,
+                          plans: dynamicPlans,
+                        }));
+
+                        setShowPlans(true);
+                      } else {
+                        setShowPlans(false);
+                      }
+                    } catch (err) {
+                      console.error("Error fetching plans:", err);
+                    }
+                  }}
                 >
                   <option value="">Select Category</option>
                   {categories.map((cat) => (
@@ -261,57 +303,40 @@ const Services = () => {
                     </option>
                   ))}
                 </select>
-              </div>
+                {/* ✅ SHOW PLANS HERE */}
+                {showPlans && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Service Plans
+                    </label>
 
-              {/* ✅ ADD THIS WHOLE BLOCK HERE */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Service Requirements
-                </label>
+                    <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                      {newService.plans.map((plan, index) => (
+                        <div key={index} className="flex gap-3 items-center">
+                          <input
+                            type="text"
+                            className="flex-1 border-b border-gray-300 outline-none p-2 bg-transparent"
+                            value={plan.name}
+                            readOnly
+                          />
 
-                <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
-                  {newService.plans.map((plan, index) => (
-                    <div key={index} className="flex gap-3 items-center">
-                      <input
-                        type="text"
-                        placeholder={`Hair ${index + 1}`}
-                        className="flex-1 border-b border-gray-300 outline-none p-2 bg-transparent"
-                        value={plan.name}
-                        onChange={(e) => {
-                          const updated = [...newService.plans];
-                          updated[index].name = e.target.value;
-                          setNewService({ ...newService, plans: updated });
-                        }}
-                      />
-
-                      <input
-                        type="number"
-                        placeholder="$ Price"
-                        className="w-24 border-b border-gray-300 outline-none p-2 bg-transparent"
-                        value={plan.price}
-                        onChange={(e) => {
-                          const updated = [...newService.plans];
-                          updated[index].price = e.target.value;
-                          setNewService({ ...newService, plans: updated });
-                        }}
-                      />
+                          <input
+                            type="number"
+                            className="w-24 border-b border-gray-300 outline-none p-2 bg-transparent"
+                            value={plan.price}
+                            onChange={(e) => {
+                              const updated = [...newService.plans];
+                              updated[index].price = e.target.value;
+                              setNewService({ ...newService, plans: updated });
+                            }}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setNewService({
-                        ...newService,
-                        plans: [...newService.plans, { name: "", price: "" }],
-                      })
-                    }
-                    className="text-sm text-[#088395] font-semibold"
-                  >
-                    + Add More
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
+
 
               <div></div>
               <div className="grid grid-cols-2 gap-4">

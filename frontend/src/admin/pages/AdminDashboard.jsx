@@ -9,7 +9,7 @@ import {
   TrendingDown,
   MoreVertical,
 } from "lucide-react";
-import { adminAPI } from "../../api/apiClient";
+import { adminAPI, bookingAPI } from "../../api/apiClient";
 
 // CSS-only Simple Bar Chart
 const SimpleBarChart = () => {
@@ -138,6 +138,48 @@ const AdminDashboard = () => {
     fetchDashboardStats();
   }, []);
 
+  // Fetch bookings and transactions for dashboard numbers
+  const [totalBookings, setTotalBookings] = useState(null);
+  const [totalRevenue, setTotalRevenue] = useState(null);
+  const [recentBookings, setRecentBookings] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadData = async () => {
+      try {
+        const [bkRes, txRes] = await Promise.all([
+          bookingAPI.getMyBookings(),
+          adminAPI.getAllTransactions({ page: 1, limit: 100 }),
+        ]);
+
+        if (!mounted) return;
+
+        const bookings = bkRes.data.bookings || [];
+        const transactions = txRes.data.transactions || [];
+
+        setTotalBookings(bookings.length);
+        const revenue = transactions.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+        setTotalRevenue(revenue);
+
+        setRecentBookings(
+          bookings.slice(0, 4).map((b) => ({
+            id: b._id,
+            user: b.user?.name || b.user?.email || 'User',
+            service: b.service?.title || (b.service && b.service.title) || '',
+            provider: b.vendor?.businessName || b.vendor?.name || '',
+            amount: b.payment?.amount ? `$${b.payment.amount.toFixed(2)}` : '-',
+            status: b.status || 'Unknown',
+            date: b.createdAt ? new Date(b.createdAt).toLocaleDateString() : '',
+          }))
+        );
+      } catch (err) {
+        console.error('Failed to load dashboard bookings/transactions', err);
+      }
+    };
+    loadData();
+    return () => { mounted = false };
+  }, []);
+
   const stats = [
     {
       title: "Total Users",
@@ -157,7 +199,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Total Bookings",
-      value: "2,890",
+      value: totalBookings === null ? '...' : totalBookings.toLocaleString(),
       change: "+18.1%",
       isPositive: true,
       icon: <Calendar className="text-emerald-600" />,
@@ -165,52 +207,14 @@ const AdminDashboard = () => {
     },
     {
       title: "Total Revenue",
-      value: "$124,500",
+      value: totalRevenue === null ? '...' : `$${totalRevenue.toFixed(2)}`,
       change: "-2.4%",
       isPositive: false,
       icon: <DollarSign className="text-amber-600" />,
       bg: "bg-amber-50",
     },
   ];
-
-  const recentBookings = [
-    {
-      id: "#BK-001",
-      user: "Alex Johnson",
-      service: "AC Repair",
-      provider: "Cool Air Pros",
-      amount: "$120.00",
-      status: "Completed",
-      date: "Oct 25, 2023",
-    },
-    {
-      id: "#BK-002",
-      user: "Sarah Williams",
-      service: "Home Cleaning",
-      provider: "Sparkle Clean",
-      amount: "$85.00",
-      status: "Pending",
-      date: "Oct 25, 2023",
-    },
-    {
-      id: "#BK-003",
-      user: "Mike Brown",
-      service: "Plumbing",
-      provider: "Quick Fix",
-      amount: "$200.00",
-      status: "Processing",
-      date: "Oct 24, 2023",
-    },
-    {
-      id: "#BK-004",
-      user: "Emily Davis",
-      service: "Electrical",
-      provider: "Bright Lights",
-      amount: "$150.00",
-      status: "Cancelled",
-      date: "Oct 24, 2023",
-    },
-  ];
+  // recentBookings will be populated from API
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -298,7 +302,7 @@ const AdminDashboard = () => {
           <div className="p-6 border-b border-gray-100 flex justify-between items-center">
             <h3 className="text-lg font-bold text-gray-900">Recent Bookings</h3>
             <Link
-              to="/admin/bookings"
+              to="/admin/booking"
               className="text-blue-600 text-sm font-semibold hover:underline"
             >
               View All

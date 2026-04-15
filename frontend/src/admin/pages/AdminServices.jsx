@@ -16,22 +16,25 @@ const AdminServices = () => {
     typeof cat === "string" ? cat : cat?.addCategory || cat?.name || "General";
 
   React.useEffect(() => {
-    import("../../api/apiClient").then(({ servicesAPI }) => {
-      servicesAPI
-        .getAll()
+    import("../../api/apiClient").then(({ adminAPI }) => {
+      adminAPI
+        .getAllServices()
         .then((res) => {
-          const normalizeCategory = (cat) =>
-            typeof cat === "string"
-              ? cat
-              : cat?.addCategory || cat?.name || "General";
+          // 🔥 DEBUG FULL RESPONSE
+          console.log("FULL RESPONSE:", res.data);
+
+          // 🔥 DEBUG EACH SERVICE
+          res.data.services?.forEach((s) => {
+            console.log("SERVICE CATEGORY:", s.category);
+          });
 
           setServices(
             (res.data.services || []).map((s) => ({
               id: s._id,
-              name: s.title,
-              category: normalizeCategory(s.category),
+              name: s.plans?.[0]?.name || "Service",
+              category: s.category?.addCategory || "No Category", // ✅ FIXED
               price: s.plans?.[0]?.price || 0,
-              status: "Active",
+              status: s.status || "Active",
             })),
           );
         })
@@ -81,80 +84,38 @@ const AdminServices = () => {
     e.preventDefault();
 
     try {
-      if (currentService.id) {
-        // Use admin API for admin panel updates to avoid vendor-only authorization checks
-        const { adminAPI } = await import("../../api/apiClient");
-        await adminAPI.updateService(currentService.id, {
-          title: currentService.name,
-          category: currentService.category,
-          plans: currentService.plans.map((p) => ({
-            name: p.name || "Standard",
-            price: Number(p.price),
-          })),
-          status: currentService.status,
-        });
+      const { adminAPI } = await import("../../api/apiClient");
 
-        setServices(
-          services.map((s) =>
-            s.id === currentService.id ? currentService : s,
-          ),
-        );
+      const plansPayload = currentService.plans.map((p) => ({
+        name: p.name || "Standard",
+        price: Number(p.price) || 0,
+      }));
 
-        toast.success("Service updated");
-      } else {
-        // Use admin API for creating services from admin panel
-        const { adminAPI } = await import("../../api/apiClient");
-        // Ensure title and plans come from the plans array when the top-level name/price aren't set
-        const titleValue =
-          currentService.name ||
-          currentService.plans?.[0]?.name ||
-          "Untitled Service";
-        const plansPayload = (
-          currentService.plans || [{ name: "Standard", price: 0 }]
-        ).map((p) => ({
-          name: p.name || "Standard",
-          price: Number(p.price) || 0,
-        }));
+      const res = await adminAPI.createService({
+        category: currentService.category, // ✅ name
+        plans: plansPayload,
+        requirements: currentService.requirements || [],
+        status: currentService.status,
+      });
 
-        const res = await adminAPI.createService({
-          category: currentService.category,
-          plans: plansPayload,
-          requirements: currentService.requirements || [], // ✅ ADD
-          status: currentService.status,
-        });
+      const created = res.data.service;
 
-        const created = res.data.service;
-
-        setServices([
-          ...services,
-          {
-            id: created._id,
-            name: created.title,
-            category: normalizeCategory(created.category),
-            price: created.plans?.[0]?.price || 0,
-            status: "Active",
-          },
-        ]);
-
-        toast.success("Service created");
-      }
-
+      setServices([
+        ...services,
+        {
+          id: created._id,
+          name: created.plans?.[0]?.name || "Service",
+          category: created.category,
+          price: created.plans?.[0]?.price || 0,
+          status: created.status,
+        },
+      ]);
+      console.log("CATEGORY SENDING:", currentService.category);
+      toast.success("Service created");
       setIsServiceModalOpen(false);
     } catch (err) {
-      // improved error logging to help diagnose 404/authorization issues
-      console.error(
-        "Save service error:",
-        err.response?.status,
-        err.response?.data,
-        err.request || err.message,
-      );
-      const serverMessage =
-        err.response?.data?.message || err.response?.data || err.message;
-      toast.error(
-        typeof serverMessage === "string"
-          ? serverMessage
-          : "Failed to save service",
-      );
+      console.error(err);
+      toast.error("Failed to save service");
     }
   };
 
@@ -337,6 +298,9 @@ const AdminServices = () => {
                     Category
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                    name
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
                     Price
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
@@ -354,13 +318,15 @@ const AdminServices = () => {
                     className="hover:bg-gray-50/50 transition-colors"
                   >
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {service.name}
+                      {service.category} {/* Category */}
                     </td>
+
                     <td className="px-6 py-4 text-sm text-gray-600">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {service.category}
+                        {service.name} {/* ✅ Service Name */}
                       </span>
                     </td>
+
                     <td className="px-6 py-4 text-sm font-bold text-gray-900">
                       ${service.price}
                     </td>
@@ -471,7 +437,7 @@ const AdminServices = () => {
                   Category
                 </label>
                 <select
-                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  className="w-full p-2.5 border border-gray-200 rounded-lg"
                   value={currentService.category}
                   onChange={(e) =>
                     setCurrentService({
@@ -582,6 +548,7 @@ const AdminServices = () => {
                   + Add Plan
                 </button>
               </div>
+
               <div className="pt-4 flex justify-end gap-2">
                 <button
                   type="button"

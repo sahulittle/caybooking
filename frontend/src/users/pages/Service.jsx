@@ -130,7 +130,7 @@ const Service = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen pb-16 font-sans">
-      <div className="bg-[radial-gradient(circle_at_top_right,#374151_0%,#111827_100%)] text-white py-16 px-8 text-center mb-8">
+      <div className="bg-[radial-gradient(circle_at_top_right,#374151_0%,#111827_100%)] text-white py-12 px-4 sm:py-16 sm:px-8 text-center mb-8">
         <h1 className="text-4xl font-extrabold mb-2">
           Our Professional Services
         </h1>
@@ -139,7 +139,7 @@ const Service = () => {
         </p>
       </div>
 
-      <div className="max-w-7xl mx-auto flex flex-wrap gap-8 px-8">
+      <div className="max-w-7xl mx-auto flex flex-wrap gap-8 px-4 sm:px-8">
         {/* Sidebar Filters */}
         <aside className="flex-1 min-w-[250px] bg-white p-6 rounded-2xl h-fit shadow-sm">
           <div className="mb-8 border-b border-gray-200 pb-6">

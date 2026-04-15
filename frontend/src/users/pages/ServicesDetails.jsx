@@ -175,7 +175,7 @@ const ServicesDetails = () => {
                       </div>
                       <span className="text-xs text-gray-400">Verified</span>
                     </div>
-                    <p className="text-gray-600 text-sm ml-13 pl-13 leading-relaxed">
+                    <p className="text-gray-600 text-sm leading-relaxed">
                       "{review.comment}"
                     </p>
                   </div>

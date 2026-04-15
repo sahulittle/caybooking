@@ -22,7 +22,7 @@ const ServicesByCategory = () => {
   }, [categoryId]);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">Services</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

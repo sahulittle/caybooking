@@ -62,34 +62,7 @@ const AdminSetting = () => {
         </div>
 
         {/* Financial Settings */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-            <Percent className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-bold text-gray-900">Financial Configuration</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Commission Rate (%)</label>
-              <input type="number" name="commissionRate" value={settings.commissionRate} onChange={handleChange} className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Currency</label>
-              <select name="currency" value={settings.currency} onChange={handleChange} className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Payment Gateway</label>
-              <select name="paymentGateway" value={settings.paymentGateway} onChange={handleChange} className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                <option value="Stripe">Stripe</option>
-                <option value="PayPal">PayPal</option>
-                <option value="Razorpay">Razorpay</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        {/* Financial settings removed per request */}
 
         {/* Notification Settings */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">

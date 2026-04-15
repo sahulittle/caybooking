@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   DollarSign, 
   Download, 
@@ -13,6 +13,7 @@ import {
   MoreVertical
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { adminAPI } from '../../api/apiClient'
 
 const Payments = () => {
   const [activeTab, setActiveTab] = useState('transactions')
@@ -20,34 +21,81 @@ const Payments = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [commissionRate, setCommissionRate] = useState(10)
 
-  // Mock Stats
-  const stats = [
-    { title: 'Total Revenue', value: '$124,500.00', sub: '+12.5% vs last month', icon: <DollarSign className="w-6 h-6 text-white" />, bg: 'bg-emerald-500' },
-    { title: 'Vendor Payouts', value: '$85,200.00', sub: 'Total distributed', icon: <ArrowUpRight className="w-6 h-6 text-white" />, bg: 'bg-blue-500' },
-    { title: 'Pending Withdrawals', value: '$4,350.00', sub: '12 requests pending', icon: <Clock className="w-6 h-6 text-white" />, bg: 'bg-amber-500' },
-    { title: 'Net Profit', value: '$34,950.00', sub: 'Platform earnings', icon: <ArrowDownLeft className="w-6 h-6 text-white" />, bg: 'bg-purple-500' },
-  ]
-
-  // Mock Data
-  const transactions = [
-    { id: 'TRX-98765', bookingId: 'BK-001', vendor: 'Cool Air Pros', customer: 'John Doe', amount: 120.00, adminFee: 12.00, status: 'Completed', date: '2023-10-25' },
-    { id: 'TRX-98764', bookingId: 'BK-002', vendor: 'Sparkle Clean', customer: 'Jane Smith', amount: 85.00, adminFee: 8.50, status: 'Completed', date: '2023-10-24' },
-    { id: 'TRX-98763', bookingId: 'BK-003', vendor: 'Quick Fix Plumbing', customer: 'Bob Jones', amount: 200.00, adminFee: 20.00, status: 'Refunded', date: '2023-10-23' },
-    { id: 'TRX-98762', bookingId: 'BK-004', vendor: 'Bright Lights Elec.', customer: 'Emily Davis', amount: 150.00, adminFee: 15.00, status: 'Completed', date: '2023-10-22' },
-    { id: 'TRX-98761', bookingId: 'BK-005', vendor: 'Green Gardeners', customer: 'Michael Wilson', amount: 95.00, adminFee: 9.50, status: 'Pending', date: '2023-10-21' },
-  ]
-
-  const [withdrawals, setWithdrawals] = useState([
-    { id: 'WDR-001', vendor: 'Cool Air Pros', amount: 1500.00, method: 'Bank Transfer', account: '**** 1234', date: '2023-10-26', status: 'Pending' },
-    { id: 'WDR-002', vendor: 'Sparkle Clean', amount: 800.00, method: 'PayPal', account: 'sparkle@clean.com', date: '2023-10-25', status: 'Approved' },
-    { id: 'WDR-003', vendor: 'Quick Fix Plumbing', amount: 2100.00, method: 'Bank Transfer', account: '**** 5678', date: '2023-10-24', status: 'Rejected' },
-    { id: 'WDR-004', vendor: 'Bright Lights Elec.', amount: 1200.00, method: 'Bank Transfer', account: '**** 9012', date: '2023-10-23', status: 'Pending' },
+  // Computed stats (derived from API data)
+  const [stats, setStats] = useState([
+    { title: 'Total Revenue', value: '...', sub: '', icon: <DollarSign className="w-6 h-6 text-white" />, bg: 'bg-emerald-500' },
+    { title: 'Vendor Payouts', value: '...', sub: '', icon: <ArrowUpRight className="w-6 h-6 text-white" />, bg: 'bg-blue-500' },
+    { title: 'Pending Withdrawals', value: '...', sub: '', icon: <Clock className="w-6 h-6 text-white" />, bg: 'bg-amber-500' },
+    { title: 'Net Profit', value: '...', sub: '', icon: <ArrowDownLeft className="w-6 h-6 text-white" />, bg: 'bg-purple-500' },
   ])
 
-  const handleWithdrawalAction = (id, action) => {
-    setWithdrawals(withdrawals.map(w => w.id === id ? { ...w, status: action === 'approve' ? 'Approved' : 'Rejected' } : w))
-    toast.success(`Request ${action}d successfully`)
+  // Data from API
+  const [transactions, setTransactions] = useState([])
+  const [txLoading, setTxLoading] = useState(false)
+
+  const [withdrawals, setWithdrawals] = useState([])
+  const [wdLoading, setWdLoading] = useState(false)
+
+  const handleWithdrawalAction = async (id, action) => {
+    try {
+      const newStatus = action === 'approve' ? 'Approved' : 'Rejected'
+      await adminAPI.updateWithdrawalStatus(id, { status: newStatus })
+      toast.success(`Request ${action}d successfully`)
+      loadWithdrawals()
+    } catch (err) {
+      console.error(err)
+      toast.error('Action failed')
+    }
   }
+
+  const loadTransactions = async () => {
+    try {
+      setTxLoading(true)
+      const res = await adminAPI.getAllTransactions({ page: 1, limit: 50 })
+      setTransactions(res.data.transactions || [])
+    } catch (err) {
+      console.error('Failed to load transactions', err)
+      toast.error('Failed to load transactions')
+    } finally {
+      setTxLoading(false)
+    }
+  }
+
+  const loadWithdrawals = async () => {
+    try {
+      setWdLoading(true)
+      const res = await adminAPI.getAllWithdrawals({ page: 1, limit: 50 })
+      setWithdrawals(res.data.withdrawals || [])
+    } catch (err) {
+      console.error('Failed to load withdrawals', err)
+      toast.error('Failed to load withdrawals')
+    } finally {
+      setWdLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadTransactions()
+    loadWithdrawals()
+  }, [])
+
+  // Recompute dashboard stats when data changes
+  useEffect(() => {
+    const totalRevenue = transactions.reduce((s, t) => s + (Number(t.amount) || 0), 0)
+    const adminFeeRate = 0.1 // 10%
+    const vendorPayouts = totalRevenue * (1 - adminFeeRate)
+    const pendingWithdrawals = withdrawals
+      .filter((w) => (w.status || '').toString().toLowerCase() === 'pending')
+      .reduce((s, w) => s + (Number(w.amount) || 0), 0)
+    const netProfit = totalRevenue * adminFeeRate - pendingWithdrawals
+
+    setStats([
+      { title: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, sub: '', icon: <DollarSign className="w-6 h-6 text-white" />, bg: 'bg-emerald-500' },
+      { title: 'Vendor Payouts', value: `$${vendorPayouts.toFixed(2)}`, sub: 'Total distributed', icon: <ArrowUpRight className="w-6 h-6 text-white" />, bg: 'bg-blue-500' },
+      { title: 'Pending Withdrawals', value: `$${pendingWithdrawals.toFixed(2)}`, sub: `${withdrawals.filter((w) => (w.status || '').toString().toLowerCase() === 'pending').length} requests pending`, icon: <Clock className="w-6 h-6 text-white" />, bg: 'bg-amber-500' },
+      { title: 'Net Profit', value: `$${netProfit.toFixed(2)}`, sub: 'Platform earnings', icon: <ArrowDownLeft className="w-6 h-6 text-white" />, bg: 'bg-purple-500' },
+    ])
+  }, [transactions, withdrawals])
 
   const handleSaveSettings = (e) => {
     e.preventDefault()
@@ -65,8 +113,8 @@ const Payments = () => {
   }
 
   // Filter Logic (Basic)
-  const filteredTransactions = transactions.filter(t => t.id.toLowerCase().includes(searchTerm.toLowerCase()) || t.vendor.toLowerCase().includes(searchTerm.toLowerCase()))
-  const filteredWithdrawals = withdrawals.filter(w => w.vendor.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredTransactions = transactions.filter(t => (t.transactionId || t.id || '').toString().toLowerCase().includes(searchTerm.toLowerCase()) || (t.vendor || '').toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredWithdrawals = withdrawals.filter(w => (w.vendor || '').toLowerCase().includes(searchTerm.toLowerCase()))
 
   return (
     <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
@@ -160,17 +208,17 @@ const Payments = () => {
               <tbody className="divide-y divide-gray-100 text-sm">
                 {filteredTransactions.map((trx) => (
                   <tr key={trx.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-blue-600">{trx.id}</td>
+                    <td className="px-6 py-4 font-medium text-blue-600">{trx.transactionId || trx.id}</td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-gray-900">{trx.vendor}</p>
-                      <p className="text-xs text-gray-500">{trx.customer} • {trx.bookingId}</p>
+                      <p className="text-xs text-gray-500">{trx.user}</p>
                     </td>
-                    <td className="px-6 py-4 font-bold text-gray-900">${trx.amount.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-gray-600">${trx.adminFee.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-gray-500">{trx.date}</td>
+                    <td className="px-6 py-4 font-bold text-gray-900">${(trx.amount || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-gray-600">${((trx.amount || 0) * 0.1).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-gray-500">{new Date(trx.date).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getStatusColor(trx.status)}`}>
-                        {trx.status}
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getStatusColor('Completed')}`}>
+                        Completed
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -210,11 +258,17 @@ const Payments = () => {
                       <p className="text-gray-900">{wdr.method}</p>
                       <p className="text-xs text-gray-500">{wdr.account}</p>
                     </td>
-                    <td className="px-6 py-4 text-gray-500">{wdr.date}</td>
+                    <td className="px-6 py-4 text-gray-500">{wdr.date ? new Date(wdr.date).toLocaleDateString() : ''}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getStatusColor(wdr.status)}`}>
-                        {wdr.status}
-                      </span>
+                      {(() => {
+                        const raw = (wdr.status || '').toString().toLowerCase();
+                        const label = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
+                        return (
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getStatusColor(label)}`}>
+                            {label}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {wdr.status === 'Pending' ? (

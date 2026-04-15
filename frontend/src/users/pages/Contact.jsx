@@ -41,14 +41,14 @@ const Contact = () => {
   return (
     <div className="font-sans bg-gray-50">
       {/* 1. Header */}
-      <header className="text-center py-16 px-8 bg-white">
-        <h1 className="text-5xl font-extrabold text-gray-900 mb-4">Get in Touch</h1>
-        <p className="text-xl text-gray-600">Have questions or need help? We're here for you.</p>
+      <header className="text-center py-10 px-4 sm:py-16 sm:px-8 bg-white">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-4">Get in Touch</h1>
+        <p className="text-lg sm:text-xl text-gray-600">Have questions or need help? We're here for you.</p>
       </header>
 
-      <div className="flex flex-wrap max-w-7xl mx-auto my-8 gap-8 px-8">
+      <div className="flex flex-wrap max-w-7xl mx-auto my-8 gap-8 px-4 sm:px-8">
         {/* 2. Contact Form (Left) */}
-        <div className="flex-[2] min-w-[300px] bg-white p-10 rounded-2xl shadow-lg shadow-gray-200/50">
+        <div className="flex-[2] min-w-[300px] bg-white p-6 sm:p-10 rounded-2xl shadow-lg shadow-gray-200/50">
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
               <label className="block font-semibold text-gray-700 mb-2">Full Name</label>
@@ -83,8 +83,8 @@ const Contact = () => {
         </div>
 
         {/* 3. Contact Info (Right) */}
-        <div className="flex-1 min-w-[300px]">
-          <div className="bg-white p-8 rounded-2xl shadow-lg shadow-gray-200/50 mb-8">
+          <div className="flex-1 min-w-[300px]">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg shadow-gray-200/50 mb-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h3>
             <div className="flex items-center gap-4 mb-6">
               <div className="bg-blue-50 text-blue-600 p-3 rounded-full"><Phone className="w-6 h-6" /></div>
@@ -123,9 +123,9 @@ const Contact = () => {
       </div>
 
       {/* 6. CTA Section */}
-      <section className="bg-gradient-to-br from-indigo-600 to-purple-600 py-24 px-8 text-center text-white mt-16">
-        <h2 className="text-4xl md:text-5xl font-extrabold mb-8">Need urgent service?</h2>
-        <button onClick={() => navigate('/bookingpage')} className="bg-white text-indigo-600 py-4 px-12 rounded-full text-lg font-bold border-none cursor-pointer shadow-lg transition-transform hover:scale-105">Book Now</button>
+      <section className="bg-gradient-to-br from-indigo-600 to-purple-600 py-12 sm:py-24 px-4 sm:px-8 text-center text-white mt-16">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-6 sm:mb-8">Need urgent service?</h2>
+        <button onClick={() => navigate('/bookingpage')} className="bg-white text-indigo-600 py-3 sm:py-4 px-4 sm:px-12 rounded-full text-base sm:text-lg font-bold border-none cursor-pointer shadow-lg transition-transform hover:scale-105">Book Now</button>
       </section>
     </div>
   )

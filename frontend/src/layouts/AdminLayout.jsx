@@ -12,8 +12,10 @@ const AdminLayout = () => {
       
       <div className="flex pt-20 h-screen overflow-hidden">
         <Sidebar isSidebarOpen={isSidebarOpen} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto">
+          <div className="app-container py-6">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

@@ -12,9 +12,11 @@ const VendorLayout = () => {
     <div className="min-h-screen bg-slate-100 font-sans">
       <Navbar toggleSidebar={toggleSidebar} />
       
-      <div className="lg:ml-64 pt-20 pb-8 px-4">
+      <div className="lg:ml-64 pt-20 pb-8">
         <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-        <Outlet />
+        <div className="app-container">
+          <Outlet />
+        </div>
       </div>
     </div>
   )

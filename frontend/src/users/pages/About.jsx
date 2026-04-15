@@ -37,7 +37,7 @@ const About = () => {
   return (
     <div className="font-sans text-gray-700 bg-white">
       {/* 1. Hero Section */}
-      <section className="bg-[radial-gradient(circle_at_top_right,_#F0F9FF_0%,_#E0E7FF_40%,_#F5F3FF_100%)] pt-40 pb-32 px-8 text-center">
+      <section className="bg-[radial-gradient(circle_at_top_right,_#F0F9FF_0%,_#E0E7FF_40%,_#F5F3FF_100%)] pt-24 sm:pt-40 pb-16 sm:pb-32 px-4 sm:px-8 text-center">
         <div className="max-w-4xl mx-auto">
           <span className="inline-block py-2 px-4 bg-white rounded-full text-indigo-600 font-semibold text-sm mb-6 shadow-sm">Our Story</span>
           <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight">About <span className="bg-gradient-to-br from-blue-600 to-purple-600 bg-clip-text text-transparent">Caymantainane</span></h1>
@@ -48,7 +48,7 @@ const About = () => {
       </section>
 
       {/* 2. Our Mission */}
-      <section className="py-24 px-8 max-w-7xl mx-auto">
+      <section className="py-12 sm:py-24 px-4 sm:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="text-4xl font-extrabold text-gray-900 text-center mb-16">Our Mission</h2>
           <h3 className="text-2xl md:text-3xl text-gray-700 leading-snug font-medium">
@@ -58,11 +58,11 @@ const About = () => {
       </section>
 
       {/* 3. What We Do */}
-      <section className="py-24 px-8 bg-gray-50">
+      <section className="py-12 sm:py-24 px-4 sm:px-8 bg-gray-50">
         <h2 className="text-4xl font-extrabold text-gray-900 text-center mb-16">What We Do</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {services.map((item, index) => (
-            <div key={index} style={{ borderTop: `4px solid ${item.color}` }} className="bg-white p-10 rounded-[20px] shadow-sm text-center border border-gray-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
+            <div key={index} style={{ borderTop: `4px solid ${item.color}` }} className="bg-white p-6 sm:p-10 rounded-[20px] shadow-sm text-center border border-gray-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
               <div className="mb-4 flex justify-center">{item.icon}</div>
               <h3 className="text-xl font-bold text-gray-800">{item.title}</h3>
             </div>
@@ -71,7 +71,7 @@ const About = () => {
       </section>
 
       {/* 4. Why Choose Us */}
-      <section className="py-24 px-8 max-w-7xl mx-auto">
+      <section className="py-12 sm:py-24 px-4 sm:px-8 max-w-7xl mx-auto">
         <h2 className="text-4xl font-extrabold text-gray-900 text-center mb-16">Why Choose Us</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {features.map((item, index) => (
@@ -84,7 +84,7 @@ const About = () => {
       </section>
 
       {/* 5. Our Process */}
-      <section className="py-24 px-8 bg-gray-50">
+      <section className="py-12 sm:py-24 px-4 sm:px-8 bg-gray-50">
         <h2 className="text-4xl font-extrabold text-gray-900 text-center mb-16">Our Process</h2>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-8 text-center">
           {processSteps.map((step, index) => (
@@ -100,7 +100,7 @@ const About = () => {
       </section>
 
       {/* 6. Our Values */}
-      <section className="py-24 px-8 max-w-7xl mx-auto">
+      <section className="py-12 sm:py-24 px-4 sm:px-8 max-w-7xl mx-auto">
         <h2 className="text-4xl font-extrabold text-gray-900 text-center mb-16">Our Values</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {values.map((val, index) => (
@@ -112,13 +112,13 @@ const About = () => {
       </section>
 
       {/* 7. CTA Section */}
-      <section className="bg-gradient-to-br from-indigo-600 to-purple-600 py-32 px-8 text-center text-white">
-        <h2 className="text-4xl md:text-5xl font-extrabold mb-10">Ready to book your service?</h2>
-        <button onClick={() => { window.scrollTo(0, 0); navigate('/service') }} className="bg-white text-indigo-600 py-5 px-14 rounded-full text-xl font-bold shadow-xl transition-transform hover:scale-105 hover:shadow-2xl">Explore Services</button>
+      <section className="bg-gradient-to-br from-indigo-600 to-purple-600 py-16 sm:py-32 px-4 sm:px-8 text-center text-white">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-8 sm:mb-10">Ready to book your service?</h2>
+        <button onClick={() => { window.scrollTo(0, 0); navigate('/service') }} className="bg-white text-indigo-600 py-3 sm:py-5 px-6 sm:px-14 rounded-full text-lg sm:text-xl font-bold shadow-xl transition-transform hover:scale-105 hover:shadow-2xl">Explore Services</button>
       </section>
 
       {/* 8. Footer */}
-      <footer className="bg-gray-200 text-gray-700 py-16 px-8">
+      <footer className="bg-gray-200 text-gray-700 py-10 sm:py-16 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto flex justify-between flex-wrap gap-12 mb-12">
           <div className="flex-1 min-w-[200px]">
             <img src={logo} alt="Cayman Logo" className="h-12 sm:h-16 w-auto transition-transform duration-300 sm:pl-7 sm:scale-150" />

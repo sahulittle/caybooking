@@ -135,7 +135,7 @@ const Home = () => {
   return (
     <div className="font-sans text-gray-700 bg-white">
       {/* 1. Hero Section */}
-      <section className="relative px-8 pt-40 pb-48 text-center overflow-hidden">
+      <section className="relative px-4 sm:px-8 pt-24 sm:pt-40 pb-32 sm:pb-48 text-center overflow-hidden">
         {heroImages.map((img, index) => (
           <div
             key={index}
@@ -146,7 +146,7 @@ const Home = () => {
             <img
               src={img}
               alt="Hero Background"
-              className="w-full h-full object-fill"
+              className="w-full h-full object-cover min-h-[260px] sm:min-h-[360px]"
             />
             <div className="absolute inset-0 backdrop-blur-[1px]"></div>
           </div>
@@ -155,18 +155,18 @@ const Home = () => {
           <span className="inline-flex items-center gap-2 py-2 px-4 bg-white/90 backdrop-blur-md border border-indigo-100 rounded-full text-indigo-600 font-semibold text-sm mb-6 shadow-sm">
             <Sparkles className="w-4 h-4" /> #1 Home Service Provider
           </span>
-          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
             Book Trusted{" "}
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Home Services
             </span>{" "}
             in Minutes
           </h1>
-          <p className="text-lg md:text-xl text-black mb-10 max-w-xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-black mb-8 max-w-xl mx-auto">
             From AC repair to home cleaning — we connect you with verified
             professionals near you.
           </p>
-          <div className="flex justify-center gap-6">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6">
             <button
               onClick={() => navigate("/bookingpage")}
               className="py-3 px-6 md:py-4 md:px-8 text-base rounded-full cursor-pointer font-semibold shadow-md transition-transform hover:scale-105 bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg shadow-blue-500/50"
