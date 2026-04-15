@@ -177,8 +177,19 @@ const Signup = () => {
           {/* Top Toggle Nav */}
           <div className="flex justify-end mb-10">
             <div className="bg-gray-100 p-1 rounded-xl flex gap-1">
-              <Link to="/login" className="px-6 py-2 text-sm font-bold text-gray-500 hover:text-gray-800 transition-all">Login</Link>
-              <button className="px-6 py-2 text-sm font-bold bg-white text-indigo-600 rounded-lg shadow-sm">Signup</button>
+              <button
+                onClick={() => navigate("/login")}
+                type="button"
+                className="px-6 py-2 text-sm font-bold text-gray-500 hover:text-gray-800 transition-all"
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                className="px-6 py-2 text-sm font-bold bg-white text-indigo-600 rounded-lg shadow-sm"
+              >
+                Signup
+              </button>
             </div>
           </div>
 
