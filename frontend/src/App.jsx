@@ -4,16 +4,19 @@ import { Toaster } from "react-hot-toast";
 import PublicLayout from "./layouts/PublicLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
-import Home from "./users/pages/Home";
-import Service from "./users/pages/Service";
-import About from "./users/pages/About";
-import Contact from "./users/pages/Contact";
-import Signup from "./components/Signup";
-import Login from "./components/Login";
-import ServicesDetails from "./users/pages/ServicesDetails";
-import BookingPage from "./users/pages/BookingPage";
 
-import NotFound from "./users/pages/NotFound";
+import Home from './users/pages/Home'
+import Service from './users/pages/Service'
+import About from './users/pages/About'
+import Contact from './users/pages/Contact'
+import Signup from './components/Signup'
+import Login from './components/Login'
+import ServicesDetails from './users/pages/ServicesDetails'
+import BookingPage from './users/pages/BookingPage'
+import WeeklyBookingPage from './users/pages/WeeklyBookingPage'
+
+import NotFound from './users/pages/NotFound'
+// import UserRoutes from './routes/UserRoutes'
 import VendorRoutes from "./routes/VendorRoutes";
 import AdminRoutes from "./routes/AdminRoutes";
 import UserRoutes from "./routes/UserRoutes";
@@ -38,6 +41,7 @@ const App = () => {
           <Route path="signup" element={<Signup />} />
           <Route path="login" element={<Login />} />
           <Route path="bookingpage" element={<BookingPage />} />
+          <Route path="weekly-booking" element={<WeeklyBookingPage />} />
           <Route path="booking-success/:id" element={<BookingSuccess />} />
           <Route
             path="/services/:categoryId"

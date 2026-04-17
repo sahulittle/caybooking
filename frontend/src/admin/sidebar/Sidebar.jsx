@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -12,9 +12,12 @@ import {
   MessageCircle,
   AlertCircle,
   DollarSign,
+  X,
 } from "lucide-react";
 
-const Sidebar = ({ isSidebarOpen }) => {
+const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
+  const navigate = useNavigate();
+
   const navItems = [
     {
       name: "Dashboard",
@@ -35,7 +38,7 @@ const Sidebar = ({ isSidebarOpen }) => {
       path: "/admin/services",
     },
     { name: "Payment", icon: <FileText size={20} />, path: "/admin/payments" },
-    { name: "Problem", icon: <FileText size={20} />, path: "/admin/problem" },
+    { name: "Problem", icon: <AlertCircle size={20} />, path: "/admin/problem" },
     { name: "Review", icon: <Star size={20} />, path: "/admin/review" },
     {
       name: "Notification",
@@ -44,31 +47,59 @@ const Sidebar = ({ isSidebarOpen }) => {
     },
     {
       name: "Admin Role",
-      icon: <AlertCircle size={20} />,
+      icon: <Users size={20} />,
       path: "/admin/adminrole",
     },
     { name: "Setting", icon: <Settings size={20} />, path: "/admin/setting" },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    window.dispatchEvent(new Event("authStateChange"));
+    setIsSidebarOpen(false);
+    navigate("/");
+  };
+
+  const handleNavClick = () => {
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
+  };
+
   return (
-    <aside
-      className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto ${
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-      }`}
-    >
-      <div className="h-full flex flex-col">
-        {/* Nav Items */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+    <>
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 z-40 flex flex-col pt-24 pb-6 transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        <button
+          onClick={() => setIsSidebarOpen(false)}
+          className="absolute top-6 right-4 p-2 text-gray-500 hover:bg-gray-100 rounded-lg lg:hidden"
+        >
+          <X size={20} />
+        </button>
+
+        <nav className="px-3 space-y-2 flex-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.name}
               to={item.path}
               end
+              onClick={handleNavClick}
               className={({ isActive }) =>
-                `w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 no-underline ${
+                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
+                    ? "bg-[#088395] text-white shadow-md shadow-[#7AB2B2]/60"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-[#088395]"
                 }`
               }
             >
@@ -78,15 +109,17 @@ const Sidebar = ({ isSidebarOpen }) => {
           ))}
         </nav>
 
-        {/* Bottom Actions */}
-        <div className="p-4 border-t border-gray-100 shrink-0">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+        <div className="px-4 mt-auto border-t border-gray-100 pt-6">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+          >
             <LogOut size={20} />
             Logout
           </button>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 

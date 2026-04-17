@@ -128,15 +128,24 @@ const Service = () => {
     return filteredServices.slice(0, 5);
   }, [filteredServices, selectedCategories, showAll]);
 
+  // Get the first selected category for display
+  const selectedCategory = selectedCategories.length > 0 
+    ? categories.find(cat => cat._id === selectedCategories[0])
+    : null;
+
   return (
-    <div className="bg-gray-50 min-h-screen pb-16 font-sans">
-      <div className="bg-[radial-gradient(circle_at_top_right,#374151_0%,#111827_100%)] text-white py-12 px-4 sm:py-16 sm:px-8 text-center mb-8">
-        <h1 className="text-4xl font-extrabold mb-2">
-          Our Professional Services
-        </h1>
-        <p className="text-gray-400 text-lg">
-          Find the right expert for your home needs
-        </p>
+    <div className="bg-[#fbb040] min-h-screen pb-20 font-sans">
+      
+      {/* Hero Header */}
+      <div className="bg-[radial-gradient(circle_at_top_right,#1e293b_0%,#0f172a_100%)] text-white py-20 px-8 text-center mb-12 shadow-inner">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
+            {selectedCategory ? selectedCategory.displayName : 'How can we help you today?'}
+          </h1>
+          <p className="text-slate-400 text-lg md:text-xl font-medium">
+            {selectedCategory ? selectedCategory.description : 'Select a category to explore professional services near you.'}
+          </p>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto flex flex-wrap gap-8 px-4 sm:px-8">
@@ -269,12 +278,9 @@ const Service = () => {
                   <Star className="w-4 h-4 text-amber-400 fill-current" />{" "}
                   {service.rating}
                 </div>
-                <div className="text-sm text-gray-500">
-                  From{" "}
-                  <span className="text-xl font-bold text-gray-900">
-                    ${service.price}
-                  </span>
-                </div>
+                <span className="text-lg font-bold text-gray-900">
+                  ${service.price}
+                </span>
               </div>
 
               <button
@@ -309,6 +315,16 @@ const Service = () => {
             </div>
           ))}
         </main>
+
+        {/* Helper Footer */}
+        {!selectedCategory && (
+          <div className="mt-20 text-center p-12 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+            <h4 className="text-xl font-bold text-slate-800 mb-2">Can't find what you're looking for?</h4>
+            <p className="text-slate-500 mb-6">Our experts handle hundreds of tasks daily. Tell us what you need.</p>
+            <button onClick={() => navigate('/contact')} className="text-blue-600 font-bold hover:underline">Contact Support &rarr;</button>
+          </div>
+        )}
+
       </div>
     </div>
   );
