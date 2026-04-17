@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getActiveRole, canAccessRole } from "../utils/roleGuard";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -102,7 +102,8 @@ export const adminAPI = {
   // Requests
   getAllRequests: () => apiClient.get("/api/maintenance-request"),
 
-  updateRequest: (id, data) => apiClient.put(`/api/maintenance-request/${id}`, data),
+  updateRequest: (id, data) =>
+    apiClient.put(`/api/maintenance-request/${id}`, data),
 
   deleteRequest: (id) => apiClient.delete(`/api/maintenance-request/${id}`),
 
@@ -140,16 +141,23 @@ export const adminAPI = {
 
   deleteService: (id) => apiClient.delete(`/api/admin/services/${id}`),
   // Reviews
-  getAllReviews: (params = {}) => apiClient.get('/api/admin/reviews', { params }),
+  getAllReviews: (params = {}) =>
+    apiClient.get("/api/admin/reviews", { params }),
   deleteReview: (id) => apiClient.delete(`/api/admin/reviews/${id}`),
   // Payments & Withdrawals
-  getAllTransactions: (params = {}) => apiClient.get('/api/admin/transactions', { params }),
-  getAllWithdrawals: (params = {}) => apiClient.get('/api/admin/withdrawals', { params }),
-  updateWithdrawalStatus: (id, data) => apiClient.put(`/api/admin/withdrawals/${id}`, data),
+  getAllTransactions: (params = {}) =>
+    apiClient.get("/api/admin/transactions", { params }),
+  getAllWithdrawals: (params = {}) =>
+    apiClient.get("/api/admin/withdrawals", { params }),
+  updateWithdrawalStatus: (id, data) =>
+    apiClient.put(`/api/admin/withdrawals/${id}`, data),
   // Notifications
-  createNotification: (data) => apiClient.post('/api/admin/notifications', data),
-  getAllNotifications: (params = {}) => apiClient.get('/api/admin/notifications', { params }),
-  deleteNotification: (id) => apiClient.delete(`/api/admin/notifications/${id}`),
+  createNotification: (data) =>
+    apiClient.post("/api/admin/notifications", data),
+  getAllNotifications: (params = {}) =>
+    apiClient.get("/api/admin/notifications", { params }),
+  deleteNotification: (id) =>
+    apiClient.delete(`/api/admin/notifications/${id}`),
 };
 
 // =========================
@@ -169,14 +177,16 @@ export const vendorAPI = {
   // Withdrawals
   createWithdrawal: (payload) =>
     apiClient.post("/api/vendors/withdraw", payload),
-  getWithdrawals: (params = {}) => apiClient.get('/api/vendors/withdrawals', { params }),
+  getWithdrawals: (params = {}) =>
+    apiClient.get("/api/vendors/withdrawals", { params }),
   // Payments (paginated)
   getPayments: (params = {}) =>
     apiClient.get("/api/vendors/payments", { params }),
   // vendor profile
-  getProfile: (id = "me") => apiClient.get(id === "me" ? "/api/vendors" : `/api/vendors/${id}`),
+  getProfile: (id = "me") =>
+    apiClient.get(id === "me" ? "/api/vendors" : `/api/vendors/${id}`),
   updateProfile: (id, data) => apiClient.put(`/api/vendors/${id}`, data),
-  getReviews: () => apiClient.get('/api/vendors/reviews'),
+  getReviews: () => apiClient.get("/api/vendors/reviews"),
 };
 
 // =========================
@@ -197,7 +207,8 @@ export const bookingAPI = {
   // ✅ Update status (vendor/admin)
   updateBookingStatus: (id, status) =>
     apiClient.put(`/api/bookings/${id}/status`, { status }),
-  updateReply: (id, payload) => apiClient.put(`/api/bookings/${id}/reply`, payload),
+  updateReply: (id, payload) =>
+    apiClient.put(`/api/bookings/${id}/reply`, payload),
 };
 
 // =========================
@@ -213,13 +224,22 @@ export const servicesAPI = {
 
   // ✅ ADD THIS HERE
   getPlansByCategory: (categoryName) =>
-    apiClient.get(`/api/vendors/categories/${encodeURIComponent(categoryName)}`),
-  create: (data) =>
-    apiClient.post("/api/services", data, {
-      headers: { "Content-Type": "multipart/form-data" },
+    apiClient.get(
+      `/api/vendors/categories/${encodeURIComponent(categoryName)}`,
+    ),
+  create: (formData) =>
+    apiClient.post("/api/services", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     }),
 
-  update: (id, data) => apiClient.put(`/api/services/${id}`, data),
+  update: (id, formData) =>
+    apiClient.put(`/api/services/${id}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
 
   delete: (id) => apiClient.delete(`/api/services/${id}`),
 };

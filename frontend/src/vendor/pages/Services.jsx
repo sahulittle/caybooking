@@ -14,6 +14,7 @@ const Services = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     servicesAPI.getAll().then((res) => {
       const all = res.data.services || [];
+      console.log("All Services:", all);
       // Filter services that belong to this vendor (vendor stored as user id)
       const mine = all.filter((s) => s.vendor && s.vendor._id === user.id);
       setServices(
@@ -49,36 +50,50 @@ const Services = () => {
   const [editingId, setEditingId] = useState(null);
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNewService({ ...newService, image: file }); // ✅ FIXED
-    }
+    const file = e.target.files && e.target.files[0];
+    console.log("Selected file:", file);
+    if (!file) return;
+    setNewService((prev) => ({ ...prev, image: file }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const formData = new FormData();
+      // Validate image is a File when creating a new service
+      if (!editingId && !(newService.image instanceof File)) {
+        console.error("No image File provided for new service");
+        alert("Please select an image file before submitting.");
+        return;
+      }
 
+      const formData = new FormData();
       formData.append("title", newService.name);
-      formData.append("description", newService.description);
-      formData.append("category", newService.category);
-      formData.append("startTime", newService.startTime);
-      formData.append("endTime", newService.endTime);
+      formData.append("description", newService.description || "");
+      formData.append("category", newService.category || "");
+      formData.append("startTime", newService.startTime || "");
+      formData.append("endTime", newService.endTime || "");
 
       formData.append(
         "plans",
         JSON.stringify(
-          newService.plans.map((p) => ({
+          (newService.plans || []).map((p) => ({
             name: p.name,
-            price: Number(p.price),
+            price: Number(p.price || 0),
           })),
         ),
       );
 
-      if (newService.image) {
+      if (newService.image && newService.image instanceof File) {
         formData.append("image", newService.image);
+        console.log("Appending image to FormData:", newService.image.name);
+      } else {
+        console.log("No new image file appended (keeping existing image).");
+      }
+
+      // Debug: log all FormData keys
+      for (const pair of formData.entries()) {
+        console.log("FormData:", pair[0], pair[1]);
       }
 
       if (editingId) {
@@ -105,7 +120,7 @@ const Services = () => {
       name: service.name,
       price: service.price,
       description: service.description,
-      image: service.image,
+      image: null, // ✅ FIXED HERE
       startTime: service.startTime || "",
       endTime: service.endTime || "",
       category: service.category || "",
@@ -263,7 +278,8 @@ const Services = () => {
                     );
                     if (!selectedCat) return;
 
-                    const categoryName = selectedCat.addCategory || selectedCat.name;
+                    const categoryName =
+                      selectedCat.addCategory || selectedCat.name;
                     console.log("Sending category:", categoryName);
 
                     setNewService((prev) => ({
@@ -272,9 +288,8 @@ const Services = () => {
                     }));
 
                     try {
-                      const res = await servicesAPI.getPlansByCategory(
-                        categoryName,
-                      );
+                      const res =
+                        await servicesAPI.getPlansByCategory(categoryName);
 
                       if (res.data.success) {
                         const dynamicPlans = res.data.data.map((plan) => ({
@@ -336,7 +351,6 @@ const Services = () => {
                   </div>
                 )}
               </div>
-
 
               <div></div>
               <div className="grid grid-cols-2 gap-4">

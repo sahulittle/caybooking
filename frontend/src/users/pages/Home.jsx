@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import {
   Check,
@@ -15,7 +15,7 @@ import {
   CalendarDays,
   Clock,
 } from "lucide-react";
-import logo from '../../../public/logo-cayman2.png'
+import logo from "../../../public/logo-cayman2.png";
 import { servicesAPI } from "../../api/apiClient";
 
 // Reusable Icon components using Lucide
@@ -51,8 +51,9 @@ const Home = () => {
 
         // map API → UI format
         const formatted = categories.map((cat) => ({
-          _id: cat._id, // ✅ IMPORTANT
+          _id: cat._id,
           name: cat.name || cat.addCategory,
+          image: cat.image, // ✅ ADD HERE
         }));
 
         setPopularServices(formatted);
@@ -142,8 +143,9 @@ const Home = () => {
         {heroImages.map((img, index) => (
           <div
             key={index}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${index === currentSlide ? "opacity-100" : "opacity-0"
-              }`}
+            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
+              index === currentSlide ? "opacity-100" : "opacity-0"
+            }`}
           >
             <img
               src={img}
@@ -265,16 +267,25 @@ const Home = () => {
                 }}
                 className="bg-white px-6 py-10 rounded-2xl text-center shadow-md cursor-pointer border border-gray-100 transition-all duration-300 ease-in-out hover:-translate-y-2 hover:shadow-xl"
               >
-                <div className="mb-4 flex justify-center">{iconComponent}</div>
+                <div className="mb-4 flex justify-center">
+                  {service.image ? (
+                    <img
+                      src={service.image}
+                      alt={service.name}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  ) : (
+                    iconComponent
+                  )}
+                </div>
                 <p className="text-base md:text-lg font-bold text-gray-800">
                   {service.name}
                 </p>
               </div>
             );
-          })
-          }
-        </div >
-      </section >
+          })}
+        </div>
+      </section>
 
       {/* 4. How It Works */}
       <section className="py-24 px-8 max-w-7xl mx-auto bg-gray-50 rounded-2xl">
@@ -319,116 +330,119 @@ const Home = () => {
         </div>
       </section>
 
-
-  {/* 6. Testimonials */}
-  <section className="py-24 px-8 bg-indigo-50">
-    <div className="max-w-7xl mx-auto">
-      <h2 className="text-center text-3xl md:text-4xl font-extrabold text-gray-900 mb-16">
-        What Our Customers Say
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {testimonials.map((testimonial, index) => (
-          <div key={index} className="bg-white p-8 rounded-xl shadow-lg">
-            <div className="flex mb-4">
-              {[...Array(5)].map((_, i) => (
-                <StarIcon key={i} />
-              ))}
-            </div>
-            <p className="italic text-gray-600 mb-4">
-              "{testimonial.review}"
-            </p>
-            <p className="font-semibold text-gray-900 text-right">
-              - {testimonial.author}
-            </p>
+      {/* 6. Testimonials */}
+      <section className="py-24 px-8 bg-indigo-50">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-center text-3xl md:text-4xl font-extrabold text-gray-900 mb-16">
+            What Our Customers Say
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-white p-8 rounded-xl shadow-lg">
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <StarIcon key={i} />
+                  ))}
+                </div>
+                <p className="italic text-gray-600 mb-4">
+                  "{testimonial.review}"
+                </p>
+                <p className="font-semibold text-gray-900 text-right">
+                  - {testimonial.author}
+                </p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
-  </section>
+        </div>
+      </section>
 
-  {/* 7. CTA Section */}
-  <section className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-24 px-8 text-center">
-    <h2 className="text-3xl md:text-4xl font-bold mb-8">
-      Need help? Book a service now.
-    </h2>
-    <button
-      onClick={() => navigate("/bookingpage")}
-      className="py-4 px-10 text-lg rounded-full cursor-pointer font-bold shadow-lg transition-transform hover:scale-105 bg-white text-blue-600"
-    >
-      Book a Service
-    </button>
-  </section>
+      {/* 7. CTA Section */}
+      <section className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-24 px-8 text-center">
+        <h2 className="text-3xl md:text-4xl font-bold mb-8">
+          Need help? Book a service now.
+        </h2>
+        <button
+          onClick={() => navigate("/bookingpage")}
+          className="py-4 px-10 text-lg rounded-full cursor-pointer font-bold shadow-lg transition-transform hover:scale-105 bg-white text-blue-600"
+        >
+          Book a Service
+        </button>
+      </section>
 
-  {/* 8. Footer */}
-  <footer className="bg-gray-900 text-gray-300 pt-16 px-8">
-    <div className="max-w-7xl mx-auto flex justify-between flex-wrap gap-8 pb-12">
-      <div className="flex-1 min-w-[200px]">
-        <Link to="/">
-          <img src={logo} alt="Cayman Logo" className="h-16 scale-x-150 pl-7  w-auto transition-transform duration-300 scale-y-150" />
-        </Link>
-        <p className="mb-2">Your trusted partner for home services.</p>
-      </div>
-      <div className="flex-1 min-w-[200px]">
-        <h3 className="text-lg font-semibold text-white mb-4">Services</h3>
-        <a
-          href="#"
-          className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
-        >
-          AC Repair
-        </a>
-        <a
-          href="#"
-          className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
-        >
-          Plumbing
-        </a>
-        <a
-          href="#"
-          className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
-        >
-          Electrician
-        </a>
-        <a
-          href="#"
-          className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
-        >
-          Home Cleaning
-        </a>
-      </div>
-      <div className="flex-1 min-w-[200px]">
-        <h3 className="text-lg font-semibold text-white mb-4">Contact</h3>
-        <p className="mb-2">contact@cayman.com</p>
-        <p className="mb-2">+1 (345) 555-1234</p>
-      </div>
-      <div className="flex-1 min-w-[200px]">
-        <h3 className="text-lg font-semibold text-white mb-4">Social</h3>
-        <a
-          href="#"
-          className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
-        >
-          Facebook
-        </a>
-        <a
-          href="#"
-          className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
-        >
-          Twitter
-        </a>
-        <a
-          href="#"
-          className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
-        >
-          Instagram
-        </a>
-      </div>
-    </div>
-    <div className="border-t border-gray-700 text-center py-6 text-sm">
-      <p>
-        &copy; {new Date().getFullYear()} Caymantainane Home Services. All
-        rights reserved.
-      </p>
-    </div>
-  </footer>
+      {/* 8. Footer */}
+      <footer className="bg-gray-900 text-gray-300 pt-16 px-8">
+        <div className="max-w-7xl mx-auto flex justify-between flex-wrap gap-8 pb-12">
+          <div className="flex-1 min-w-[200px]">
+            <Link to="/">
+              <img
+                src={logo}
+                alt="Cayman Logo"
+                className="h-16 scale-x-150 pl-7  w-auto transition-transform duration-300 scale-y-150"
+              />
+            </Link>
+            <p className="mb-2">Your trusted partner for home services.</p>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <h3 className="text-lg font-semibold text-white mb-4">Services</h3>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              AC Repair
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Plumbing
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Electrician
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Home Cleaning
+            </a>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <h3 className="text-lg font-semibold text-white mb-4">Contact</h3>
+            <p className="mb-2">contact@cayman.com</p>
+            <p className="mb-2">+1 (345) 555-1234</p>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <h3 className="text-lg font-semibold text-white mb-4">Social</h3>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Facebook
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Twitter
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Instagram
+            </a>
+          </div>
+        </div>
+        <div className="border-t border-gray-700 text-center py-6 text-sm">
+          <p>
+            &copy; {new Date().getFullYear()} Caymantainane Home Services. All
+            rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };

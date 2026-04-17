@@ -12,6 +12,9 @@ const ServicesByCategory = () => {
     const fetchServices = async () => {
       try {
         const res = await servicesAPI.getServicesByCategory(categoryId);
+
+        console.log("SERVICES DATA:", res.data.data);
+
         setServices(res.data.data || []);
       } catch (err) {
         console.error(err);
@@ -31,12 +34,15 @@ const ServicesByCategory = () => {
             key={service._id}
             onClick={() => {
               const user = localStorage.getItem("user");
-              // If not logged in, send to login and preserve intended booking
+
               if (!user) {
                 navigate("/login", {
                   state: {
                     from: { pathname: "/bookingpage" },
-                    resumeBooking: { service, plan: service.plans?.[0] },
+                    resumeBooking: {
+                      service,
+                      plan: service.plans?.[0],
+                    },
                   },
                 });
                 return;
@@ -44,20 +50,35 @@ const ServicesByCategory = () => {
 
               navigate("/bookingpage", {
                 state: {
-                  service: service,
+                  service,
                   plan: service.plans?.[0],
                 },
               });
             }}
-            className="border p-4 rounded-xl shadow cursor-pointer hover:shadow-lg"
+            className="border p-4 rounded-xl shadow cursor-pointer hover:shadow-lg transition duration-300"
           >
+            {/* ✅ FINAL IMAGE FIX */}
             <img
-              src={service.image}
+              src={
+                service.image ||
+                service.category?.image ||
+                "https://dummyimage.com/300x200/cccccc/000000&text=No+Image"
+              }
               alt={service.title}
-              className="w-full h-40 object-cover rounded"
+              className="w-full h-44 object-cover rounded-lg"
+              onError={(e) => {
+                e.target.src =
+                  "https://dummyimage.com/300x200/cccccc/000000&text=No+Image";
+              }}
             />
-            <h3 className="font-bold mt-3">{service.title}</h3>
-            <p className="text-sm text-gray-500">
+
+            <h3 className="font-bold mt-3 text-lg">{service.title}</h3>
+
+            <p className="text-xs text-gray-400">
+              {service.category?.addCategory}
+            </p>
+
+            <p className="text-sm text-gray-600 mt-1">
               ₹{service.plans?.[0]?.price}
             </p>
           </div>
