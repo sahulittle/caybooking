@@ -1,6 +1,6 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import {Home, Car, UserRound, HeartPulse, ShoppingBag, PartyPopper } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Home, Car, UserRound, HeartPulse, ShoppingBag, PartyPopper } from 'lucide-react'
 import logo from '../../../public/logo-cayman2.png'
 
 const About = () => {
@@ -40,7 +40,7 @@ const About = () => {
       <section className="bg-[radial-gradient(circle_at_top_right,_#F0F9FF_0%,_#E0E7FF_40%,_#F5F3FF_100%)] pt-24 sm:pt-40 pb-16 sm:pb-32 px-4 sm:px-8 text-center">
         <div className="max-w-4xl mx-auto">
           <span className="inline-block py-2 px-4 bg-white rounded-full text-indigo-600 font-semibold text-sm mb-6 shadow-sm">Our Story</span>
-          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight">About <span className="bg-gradient-to-br from-blue-600 to-purple-600 bg-clip-text text-transparent">Caymantainane</span></h1>
+          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight">About <span className="bg-gradient-to-br from-blue-600 to-purple-600 bg-clip-text text-transparent">CayBookMe</span></h1>
           <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             We connect you with trusted professionals for all your home service needs — <span className="text-blue-600 font-semibold">quickly</span>, <span className="text-emerald-600 font-semibold">safely</span>, and <span className="text-purple-600 font-semibold">affordably</span>.
           </p>
@@ -118,26 +118,91 @@ const About = () => {
       </section>
 
       {/* 8. Footer */}
-      <footer className="bg-gray-200 text-gray-700 py-10 sm:py-16 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex justify-between flex-wrap gap-12 mb-12">
+      <footer className="bg-gray-900 text-gray-300 pt-16 px-8">
+        <div className="max-w-7xl mx-auto flex justify-between flex-wrap gap-8 pb-12">
           <div className="flex-1 min-w-[200px]">
-            <img src={logo} alt="Cayman Logo" className="h-12 sm:h-16 w-auto transition-transform duration-300 sm:pl-7 sm:scale-150" />
-            <p className="mb-2">Your trusted home partner.</p>
+            <Link to="/">
+              <img src={logo} alt="Cayman Logo" className="h-16 scale-x-150 pl-7  w-auto transition-transform duration-300 scale-y-150" />
+            </Link>
+            <p className="mb-2">Your trusted partner for home services.</p>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <h4 className="text-gray-700 mb-4 text-lg font-semibold">Contact</h4>
-            <p className="mb-2">support@cayman.com</p>
-            <p className="mb-2">+1 (555) 123-4567</p>
+            <h3 className="text-lg font-semibold text-white mb-4">Services</h3>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              AC Repair
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Plumbing
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Electrician
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Home Cleaning
+            </a>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <h4 className="text-gray-700 mb-4 text-lg font-semibold">Social</h4>
-            <p className="mb-2">Instagram | Facebook | Twitter</p>
+            <h3 className="text-lg font-semibold text-white mb-4">Contact</h3>
+            <p className="mb-2">
+              <a
+                href="mailto:info@caybookme.com"
+                className="hover:text-white transition-colors"
+              >
+                info@caybookme.com
+              </a>
+            </p>
+            <p className="mb-2">
+              <a
+                href="tel:+13459309222"
+                className="hover:text-white transition-colors"
+              >
+                +1 345 930 9222
+              </a>
+            </p>
           </div>
+          {/* <div className="flex-1 min-w-[200px]">
+            <h3 className="text-lg font-semibold text-white mb-4">Social</h3>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Facebook
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Twitter
+            </a>
+            <a
+              href="#"
+              className="block text-gray-400 no-underline mb-2 hover:text-white transition-colors"
+            >
+              Instagram
+            </a>
+          </div> */}
         </div>
-        <div className="text-center border-t border-gray-800 pt-8 text-sm">
-          &copy; {new Date().getFullYear()} Caymantainane Home Services.
+        <div className="border-t border-gray-700 text-center py-6 text-sm">
+          <p>
+            &copy; {new Date().getFullYear()} CayBookMe Home Services. All
+            rights reserved.
+          </p>
         </div>
       </footer>
+
+
     </div>
   )
 }

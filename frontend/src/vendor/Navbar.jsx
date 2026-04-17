@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, NavLink } from 'react-router-dom'
 import { Menu, HouseHeart } from 'lucide-react'
-import logo from "../../public/logo1.png"
+import logo from "../../public/logo-cayman2.png"
 
 const Navbar = ({ toggleSidebar }) => {
   const navigate = useNavigate()

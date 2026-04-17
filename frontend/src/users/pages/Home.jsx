@@ -143,9 +143,8 @@ const Home = () => {
         {heroImages.map((img, index) => (
           <div
             key={index}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
-              index === currentSlide ? "opacity-100" : "opacity-0"
-            }`}
+            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${index === currentSlide ? "opacity-100" : "opacity-0"
+              }`}
           >
             <img
               src={img}
@@ -411,10 +410,25 @@ const Home = () => {
           </div>
           <div className="flex-1 min-w-[200px]">
             <h3 className="text-lg font-semibold text-white mb-4">Contact</h3>
-            <p className="mb-2">contact@cayman.com</p>
-            <p className="mb-2">+1 (345) 555-1234</p>
+            <p className="mb-2">
+              <a
+                href="mailto:info@caybookme.com"
+                className="hover:text-white transition-colors"
+              >
+                info@caybookme.com
+              </a>
+            </p>
+            <p className="mb-2">
+              <a
+                href="tel:+13459309222"
+                className="hover:text-white transition-colors"
+              >
+                +1 345 930 9222
+              </a>
+            </p>
+
           </div>
-          <div className="flex-1 min-w-[200px]">
+          {/* <div className="flex-1 min-w-[200px]">
             <h3 className="text-lg font-semibold text-white mb-4">Social</h3>
             <a
               href="#"
@@ -434,11 +448,11 @@ const Home = () => {
             >
               Instagram
             </a>
-          </div>
+          </div> */}
         </div>
         <div className="border-t border-gray-700 text-center py-6 text-sm">
           <p>
-            &copy; {new Date().getFullYear()} Caymantainane Home Services. All
+            &copy; {new Date().getFullYear()} CayBookMe Home Services. All
             rights reserved.
           </p>
         </div>

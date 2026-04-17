@@ -83,36 +83,65 @@ const Contact = () => {
         </div>
 
         {/* 3. Contact Info (Right) */}
-          <div className="flex-1 min-w-[300px]">
+        <div className="flex-1 min-w-[300px]">
           <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg shadow-gray-200/50 mb-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h3>
             <div className="flex items-center gap-4 mb-6">
               <div className="bg-blue-50 text-blue-600 p-3 rounded-full"><Phone className="w-6 h-6" /></div>
               <div>
-                <p className="font-semibold text-gray-500 text-sm">Phone</p>
-                <p className="font-bold text-gray-800 text-base">+1 (555) 123-4567</p>
+                <p className="font-bold text-gray-800 text-base">
+                  <a
+                    href="tel: +1 345 930 9222"
+                    className="hover:text-blue-600 transition-colors"
+                  >
+                    +1 345 930 9222
+                  </a>
+                </p>
+
               </div>
             </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="bg-blue-50 text-blue-600 p-3 rounded-full"><Mail className="w-6 h-6" /></div>
               <div>
                 <p className="font-semibold text-gray-500 text-sm">Email</p>
-                <p className="font-bold text-gray-800 text-base">support@caymantainane.com</p>
+                <p className="font-bold text-gray-800 text-base">info@caybookme.com</p>
               </div>
             </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="bg-blue-50 text-blue-600 p-3 rounded-full"><MapPin className="w-6 h-6" /></div>
               <div>
                 <p className="font-semibold text-gray-500 text-sm">Address</p>
-                <p className="font-bold text-gray-800 text-base">Caymantainane, India</p>
+                <p className="font-bold text-gray-800 text-base">Caymantainane, Cayman Island</p>
               </div>
             </div>
           </div>
 
           {/* 4. Map Section */}
-          <div className="h-48 bg-gray-200 rounded-2xl flex items-center justify-center text-gray-500 font-semibold mb-8">
-            <p>Google Map Placeholder</p>
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-md mb-10">
+
+            {/* Map */}
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1925580.4463683134!2d-81.89377130803588!3d19.502967387507837!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8f25863e2fb8aa29%3A0x7045c4d38770715e!2sCayman%20Islands!5e0!3m2!1sen!2sin!4v1776430525274!5m2!1sen!2sin"
+              className="w-full h-64 md:h-80 lg:h-96 border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+              title="Google Map"
+            />
+
+            {/* Overlay Button */}
+            <a
+              href="https://maps.google.com/?q=Cayman Islands"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-4 right-4 bg-white px-4 py-2 text-sm font-semibold rounded-full shadow-lg hover:bg-slate-100 transition"
+            >
+              Open in Google Maps
+            </a>
+
           </div>
+
+
 
           {/* 5. Support Info */}
           <div className="bg-emerald-50 text-emerald-800 p-6 rounded-2xl font-semibold border border-emerald-100">

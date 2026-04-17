@@ -210,17 +210,6 @@ const Login = () => {
                 "Found a certified electrician in under 3 minutes. The date
                 booking showed his exact availability — no back-and-forth."
               </p>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-500/40 flex items-center justify-center text-white font-bold border border-white/30 text-lg">
-                  RK
-                </div>
-                <div>
-                  <p className="font-bold text-base leading-none">Rachel Kim</p>
-                  <p className="text-xs text-indigo-200 mt-1.5">
-                    Homeowner, Brooklyn NY
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
