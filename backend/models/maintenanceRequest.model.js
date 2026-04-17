@@ -20,26 +20,22 @@ const MaintenanceRequestSchema = new mongoose.Schema(
       type: String,
     },
 
+    // Optional fields to support lightweight contact form submissions
     date: {
       type: String,
-      required: true,
     },
     time: {
       type: String,
-      required: true,
     },
 
     address: {
       type: String,
-      required: true,
     },
     city: {
       type: String,
-      required: true,
     },
     zip: {
       type: String,
-      required: true,
     },
 
     notes: {

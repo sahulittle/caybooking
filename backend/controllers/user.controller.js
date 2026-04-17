@@ -1,6 +1,8 @@
 import { User } from '../models/user.model.js';
 import { Vendor } from '../models/vendor.model.js';
 import generateToken from '../utils/generateToken.js';
+import { ServiceCategory } from '../models/ServiceCategory.model.js';
+import Service from '../models/service.model.js'; // ✅ ADD
 
 // @desc    Register or login a user
 // @route   POST /api/signup
@@ -36,12 +38,12 @@ const signupUser = async (req, res) => {
           success: true,
           message: 'Login successful',
           token: `Bearer ${token}`,
-          user: { 
-            id: existingUser._id, 
-            name: existingUser.name, 
-            email: existingUser.email, 
+          user: {
+            id: existingUser._id,
+            name: existingUser.name,
+            email: existingUser.email,
             roles: existingUser.roles,
-            activeRole: role 
+            activeRole: role
           },
         });
       }
@@ -97,94 +99,103 @@ const signupUser = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password, role, googleId } = req.body;
 
-    // ✅ VALIDATION
-    if (!email || !password || !role) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email, password and role are required'
-      });
+    // ✅ VALIDATION - require email and role, allow either password or googleId
+    if (!email || !role) {
+      return res.status(400).json({ success: false, message: 'Email and role are required' });
+    }
+
+    if (!password && !googleId) {
+      return res.status(400).json({ success: false, message: 'Password or Google ID required for login' });
     }
 
     if (!['user', 'vendor', 'admin'].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role'
-      });
+      return res.status(400).json({ success: false, message: 'Invalid role' });
     }
 
     // =========================
     // 👑 ADMIN LOGIN
     // =========================
     if (role === "admin") {
-      if (
-        email === process.env.ADMIN_EMAIL &&
-        password === process.env.ADMIN_PASSWORD
-      ) {
-        const token = generateToken("adminId", email, "admin");
+      // First try to find an admin user in the DB
+      const adminUser = await User.findOne({ email });
+
+      if (adminUser && adminUser.roles.includes('admin')) {
+        // If admin exists in DB, verify password
+        if (await adminUser.matchPassword(password)) {
+          const token = generateToken(adminUser._id, adminUser.email, 'admin');
+          return res.json({
+            success: true,
+            message: 'Admin login successful',
+            token: `Bearer ${token}`,
+            user: {
+              id: adminUser._id,
+              name: adminUser.name || 'Admin',
+              email: adminUser.email,
+              roles: adminUser.roles,
+              activeRole: 'admin'
+            }
+          });
+        }
+        return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+      }
+
+      // Fallback: allow built-in admin via env variables (legacy / quick access)
+      if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+        const token = generateToken('adminId', email, 'admin');
 
         return res.json({
           success: true,
-          message: "Admin login successful",
+          message: 'Admin login successful',
           token: `Bearer ${token}`,
           user: {
-            id: "adminId",
-            name: "Admin",
+            id: 'adminId',
+            name: 'Admin',
             email,
-            activeRole: "admin"
+            activeRole: 'admin'
           }
         });
-      } else {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid admin credentials"
-        });
       }
+
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
     }
 
     // =========================
-    // 👤 USER / VENDOR LOGIN
+    // 👤 USER / VENDOR LOGIN (supports password OR Google ID)
     // =========================
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     // 🔒 ROLE CHECK - User must have the requested role
     if (!user.roles.includes(role)) {
-      return res.status(403).json({
-        success: false,
-        message: `This role is not assigned to your account. Your roles: ${user.roles.join(', ')}`
-      });
+      return res.status(403).json({ success: false, message: `This role is not assigned to your account. Your roles: ${user.roles.join(', ')}` });
+    }
+
+    // If googleId provided, allow login via Google
+    if (googleId) {
+      if (user.googleId && user.googleId === googleId) {
+        const token = generateToken(user._id, user.email, role);
+        return res.json({ success: true, message: 'Login successful', token: `Bearer ${token}`, user: { id: user._id, name: user.name, email: user.email, roles: user.roles, activeRole: role } });
+      }
+      return res.status(401).json({ success: false, message: 'Invalid Google credentials' });
     }
 
     // 🔑 PASSWORD CHECK
+    if (!user.password) {
+      // No password set (e.g., account created via Google) — prompt to use Google login
+      return res.status(400).json({ success: false, message: 'Account does not have a password. Please log in using Google.' });
+    }
+
     if (await user.matchPassword(password)) {
       const token = generateToken(user._id, user.email, role);
-
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        token: `Bearer ${token}`,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          roles: user.roles,
-          activeRole: role
-        }
-      });
-    } else {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
+      return res.json({ success: true, message: 'Login successful', token: `Bearer ${token}`, user: { id: user._id, name: user.name, email: user.email, roles: user.roles, activeRole: role } });
     }
+
+    return res.status(401).json({ success: false, message: 'Invalid email or password' });
 
   } catch (error) {
     console.error('Login Error:', error);
@@ -203,5 +214,68 @@ const getAllUsers = async (req, res) => {
     res.status(500).json({ message: 'Error fetching users' });
   }
 };
+/**
+ * =========================
+ * GET CATEGORY LIST
+ * =========================
+ */
+const getCategories = async (req, res) => {
+  try {
+    const { search = "", page = 1, limit = 10 } = req.query;
 
-export { signupUser, loginUser, getAllUsers };
+    const query = search
+      ? {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { slug: { $regex: search, $options: "i" } },
+          { addCategory: { $regex: search, $options: "i" } },
+        ],
+      }
+      : {};
+
+    const categories = await ServiceCategory.find(query)
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    const total = await ServiceCategory.countDocuments(query);
+
+    return res.json({
+      success: true,
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      data: categories,
+    });
+  } catch (error) {
+    console.error("GET CATEGORIES ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+
+const getServicesByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    const services = await Service.find({
+      category: categoryId, // ✅ correct
+    }).populate("category");
+
+    return res.json({
+      success: true,
+      data: services,
+    });
+  } catch (error) {
+    console.error("GET SERVICES ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export { signupUser, loginUser, getAllUsers, getCategories, getServicesByCategory };

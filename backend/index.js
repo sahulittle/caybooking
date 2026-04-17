@@ -12,6 +12,9 @@ import bookingRoutes from './routes/booking.routes.js';
 import servicesRoutes from './routes/services.routes.js';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import paymentRoutes from './routes/payment.routes.js';
+import subscriptionRoutes from './routes/subscription.routes.js';
+
 
 
 // Load environment variables
@@ -41,6 +44,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/maintenance-request', maintenanceRequestRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/services', servicesRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);

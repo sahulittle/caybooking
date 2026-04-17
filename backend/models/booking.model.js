@@ -76,6 +76,27 @@ const bookingSchema = mongoose.Schema({
             type: Date
         }
     }
+    ,
+    payment: {
+        paid: {
+            type: Boolean,
+            default: false
+        },
+        method: {
+            type: String,
+            default: 'stripe'
+        },
+        transactionId: {
+            type: String,
+        },
+        amount: {
+            type: Number,
+        },
+        currency: {
+            type: String,
+            default: 'usd'
+        }
+    }
 }, {
     timestamps: true
 });

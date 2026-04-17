@@ -30,6 +30,20 @@ const userSchema = new mongoose.Schema({
         unique: true,
         sparse: true
     } // sparse index for unique but optional
+    ,
+    phone: {
+        type: String,
+        default: ''
+    },
+    address: {
+        type: String,
+        default: ''
+    },
+    status: {
+        type: String,
+        enum: ['Active', 'Blocked'],
+        default: 'Active'
+    }
 }, { timestamps: true });
 
 // Hash password before saving

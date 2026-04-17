@@ -33,6 +33,17 @@ const createMaintenanceRequest = async (req, res) => {
 
     await newRequest.save();
 
+    // Emit to vendor if assigned so vendor dashboard updates
+    try {
+      const io = req.app.locals.io;
+      if (io && newRequest.vendor) {
+        const vendorRoom = `vendor_${newRequest.vendor}`;
+        io.to(vendorRoom).emit('newRequest', { requestId: newRequest._id, request: newRequest });
+      }
+    } catch (emitErr) {
+      console.error('Socket emit error (maintenanceRequest):', emitErr);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Request received',
