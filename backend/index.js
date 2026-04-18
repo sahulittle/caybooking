@@ -29,31 +29,32 @@ const PORT = process.env.PORT || 5000;
 ========================= */
 const allowedOrigins = [
   "https://caybookme.online",
-  "http://localhost:5173", // for local dev (optional)
+  "https://api.caybookme.online",
+  "http://localhost:5173",
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps / Postman)
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps / Postman)
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(
-          new Error("CORS not allowed for this origin: " + origin),
-        );
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  }),
-);
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS not allowed for this origin: ' + origin));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  // include custom header used by frontend
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-role', 'X-Requested-With'],
+  exposedHeaders: ['Authorization', 'x-role'],
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
 
-// 🔥 IMPORTANT: handle preflight
-app.options("*", cors());
+app.use(cors(corsOptions));
+
+// 🔥 IMPORTANT: handle preflight with same options
+app.options('*', cors(corsOptions));
 
 /* =========================
    OTHER MIDDLEWARE
