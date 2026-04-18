@@ -49,8 +49,9 @@ const BookingPage = () => {
       try {
         if (!bookingData?.service) return;
         const s = bookingData.service;
-        // If it already has plans, assume full object
-        if (s.plans && s.plans.length > 0) return;
+        // If it already has plans and a DB id + vendor, assume full object
+        // otherwise fetch full service from API so backend gets a valid vendor id
+        if (s.plans && s.plans.length > 0 && (s._id || s.id) && s.vendor) return;
 
         const id = s._id || s.id;
         if (!id) return;
@@ -230,7 +231,9 @@ const BookingPage = () => {
 
     try {
       // 1️⃣ Create booking first and then show payment options modal
+      // include serviceId to ensure backend can resolve the service reliably
       const bookingRes = await bookingAPI.createBooking({
+        serviceId: service._id || service.id,
         serviceTitle: service.title,
         planName: plan.name,
         bookingDate: formData.date,
@@ -238,6 +241,7 @@ const BookingPage = () => {
         address: formData.address,
         city: formData.city,
         zip: formData.zip,
+        phone: formData.phone || "",
         notes: formData.notes,
       });
 
@@ -245,8 +249,9 @@ const BookingPage = () => {
       setCreatedBooking({ id: booking._id, amount: plan.price });
       setShowPaymentModal(true);
     } catch (error) {
-      console.error(error);
-      toast.error("Booking creation failed");
+      console.error("Booking creation error:", error.response?.data || error.message || error);
+      const msg = error.response?.data?.message || error.response?.data?.error || error.message || "Booking creation failed";
+      toast.error(msg);
     }
   };
 
@@ -261,8 +266,9 @@ const BookingPage = () => {
       // redirect to Stripe Checkout
       window.location.href = res.data.url;
     } catch (error) {
-      console.error(error);
-      toast.error("Payment initiation failed");
+      console.error("Payment initiation error:", error.response?.data || error.message || error);
+      const msg = error.response?.data?.message || error.message || "Payment initiation failed";
+      toast.error(msg);
     }
   };
 

@@ -1,7 +1,13 @@
 import axios from "axios";
 import { getActiveRole, canAccessRole } from "../utils/roleGuard";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
+// If `VITE_API_URL` is set use it. In production default to the page origin
+// so the frontend can call the backend on the same host (Hostinger deployments).
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" && import.meta.env.PROD
+    ? window.location.origin
+    : "http://localhost:5002");
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -28,19 +34,28 @@ apiClient.interceptors.request.use(
       config.headers["x-role"] = activeRole;
     }
 
-    // 🔒 Admin Protection
-    if (config.url.includes("/admin") && !canAccessRole("admin")) {
-      return Promise.reject(new Error("Admin access required"));
-    }
+    // Normalize to a pathname for role-based checks so it works with
+    // relative URLs ("/api/...") and absolute URLs ("https://.../api/...").
+    try {
+      const full = new URL(config.url, API_BASE_URL);
+      const path = full.pathname || "";
 
-    // 🔒 Vendor Protection (only vendor routes)
-    // Allow public vendor endpoints like categories/plans even if not active vendor
-    if (
-      config.url.includes("/vendors") &&
-      !config.url.includes("/vendors/categories") &&
-      !canAccessRole("vendor")
-    ) {
-      return Promise.reject(new Error("Vendor access required"));
+      // 🔒 Admin Protection - require admin role for admin routes
+      if (path.startsWith("/api/admin") && !canAccessRole("admin")) {
+        return Promise.reject(new Error("Admin access required"));
+      }
+
+      // 🔒 Vendor Protection (only vendor routes)
+      // Allow public vendor endpoints like categories/plans even if not active vendor
+      if (
+        path.startsWith("/api/vendors") &&
+        !path.startsWith("/api/vendors/categories") &&
+        !canAccessRole("vendor")
+      ) {
+        return Promise.reject(new Error("Vendor access required"));
+      }
+    } catch (e) {
+      // If URL parsing fails, skip the extra checks (keep original behaviour)
     }
 
     return config;
