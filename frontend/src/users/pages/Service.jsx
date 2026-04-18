@@ -317,13 +317,13 @@ const Service = () => {
         </main>
 
         {/* Helper Footer */}
-        {!selectedCategory && (
+        {/* {!selectedCategory && (
           <div className="mt-20 text-center p-12 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
             <h4 className="text-xl font-bold text-slate-800 mb-2">Can't find what you're looking for?</h4>
             <p className="text-slate-500 mb-6">Our experts handle hundreds of tasks daily. Tell us what you need.</p>
             <button onClick={() => navigate('/contact')} className="text-blue-600 font-bold hover:underline">Contact Support &rarr;</button>
           </div>
-        )}
+        )} */}
 
       </div>
     </div>
