@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
+import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 
@@ -41,7 +42,7 @@ const LoginEnhanced = () => {
         throw new Error('Please select a role to continue');
       }
 
-      const response = await axios.post('http://localhost:5000/api/login', {
+      const response = await apiClient.post('/api/login', {
         email,
         password,
         role: selectedRole  // 🔒 MUST specify role
@@ -93,7 +94,7 @@ const LoginEnhanced = () => {
         });
 
         // Login with selected role
-        const response = await axios.post('http://localhost:5000/api/login', {
+        const response = await apiClient.post('/api/login', {
           email: userInfo.data.email,
           password: userInfo.data.sub,
           role: selectedRole
