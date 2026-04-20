@@ -6,7 +6,7 @@ const PublicLayout = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
-      <div className="pt-24">
+      <div className="pt-16 lg:pt-20">
         <Outlet />
       </div>
     </div>

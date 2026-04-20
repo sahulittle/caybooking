@@ -76,7 +76,6 @@ export const allServicesData = [
       { id: 1, user: 'James Brown', rating: 5, comment: 'The plumber arrived within an hour and fixed my sink. Very efficient and professional service.' },
     ]
   },
-  // Placeholder data for other services
   {
     id: 4,
     title: 'Electrical Repairs',
